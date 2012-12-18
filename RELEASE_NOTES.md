@@ -3,10 +3,97 @@ GRMustache Release Notes
 
 You can compare the performances of GRMustache versions at https://github.com/groue/GRMustacheBenchmark.
 
+## v6.1.3
+
+The parser now rejects expressions identifiers that start with a reserved Mustache character: `{}<>&#^$/` (those are the characters that start Mustache tags).
+
+This will help the most daring of you who try to push Mustache off limits:
+
+- `{{ >foo }}` looks a lot like a partial tag, but is not. It will now yield a parse error (because `>foo` turns out to be an invalid expression for a variable tag).
+- `{{{#foo}}}...{{{/foo}}}` looks a lot like an "unescaped section tag", but there is no such tag in Mustache. This string will now yield a parse error (because `#foo` and `/foo` turn out to be invalid expressions for triple-mustache unescaped variable tags).
+
+## v6.1.2
+
+Improved template debugging: errors are logged when you do not handle them.
+
+## v6.1.1
+
+**[Performance improvements](https://github.com/groue/GRMustacheBenchmark)**
+
+## v6.1
+
+### "Else"
+
+You don't have to close a regular section if it is immediately followed by its inverted form: `{{#name}}...{{^name}}...{{/name}}`
+    
+The short form `{{#name}}...{{^}}...{{/}}` is accepted, as well as the "unless" form `{{^name}}...{{#}}...{{/}}`.
+
+
+## v6.0.1
+
+Robustness of protected contexts. Check the ["Protected namespaces"](Guides/protected_contexts.md#protected-namespaces) section of the Protected Contexts Guide.
+
+
+## v6.0.0
+
+### Major refactoring and simplification
+
+GRMustache has recently been suffering of overengineering and API bloat. GRMustache 6 drastically reduces the surface of the interface.
+
+**Removed APIs**:
+
+- `GRMustacheDynamicPartial`, `GRMustacheProxy`, `GRMustacheSectionTagHelper`, `GRMustacheVariableTagHelper`, and their companion classes have all been gathered in the `GRMustacheRendering` protocol, covered in the [Rendering Objects Guide](Guides/rendering_objects.md).
+
+- `GRMustacheInvocation` and `GRMustacheTemplateDelegate` have been replaced by `GRMustacheTagDelegate`, covered in the [Tag Delegates Guide](Guides/rendering_objects.md).
+
+- The `GRMustacheTemplate` and `GRMustacheTemplateRepository` classes have lost many methods that used to cripple the autocompletion menu of Xcode. All removed shortcut are still eventually available through template repositories.
+
+**New rendering engine behavior**:
+
+- The sections of overridable partials behave more like Ruby on Rails' `<% content_for(:foo) do %>...<% end %>`: multiple overriding sections are now concatenated, when GRMustache 5 used to render the last one only. See the [Partials Guide](Guides/partials.md).
+
+- [Filters](Guides/filters.md) are no longer provided in a separate container (the `renderObject:withFilters:` method is removed). All objects that enter the context stack can now provide filters (and supersede filters defined in parent contexts). You may want to check the [Protected Contexts Guide](Guides/protected_contexts.md) if you want to protect your filter keys.
+
+
+## v5.5.2
+
+**Bug fixes**
+
+[Variadic filters](Guides/filters.md) can now return filters, just as filters with a single argument.
+
+## v5.5.1
+
+**Niceties and bug fixes**
+
+The `count` method of NSArray, NSSet and NSOrderedSet can now be queried in templates: `{{collection.count}}` renders as expected, and `{{#collection.count}}...{{/}}` can conditionally render a section if and only if the collection is not empty. See [Guides/runtime/context_stack.md](Guides/runtime/context_stack.md#nsarray-nsset-nsorderedset) for a detailed explanation.
+
+[Variadic filters](Guides/filters.md) that return nil used to not play well with boolean sections.
+
+[GRMustacheProxy](Guides/proxies.md) cooperates with `NSUndefinedKeyException` prevention, and keeps its delegate quiet after you have invoked `[GRMustache preventNSUndefinedKeyExceptionAttack]`.
+
+[GRMustacheProxy](Guides/proxies.md) refuses `nil` delegate, since it can not pose as `nil`. You must use [NSNull null] instead.
+
+## v5.5
+
+### Variadic filters
+
+Filters can now take several arguments: `{{ f(a,b) }}`. Check [Guides/filters.md](Guides/filters.md).
+
+### GRMustacheProxy
+
+Proxies are a tool for the developer who wants to write reusable and robust filters, helpers, and template delegates that extend the abilities of the rendered data. Check [Guides/proxies.md](Guides/proxies.md).
+
+The [array indexes.md](Guides/sample_code/indexes.md) sample code now uses proxies. The visible benefit is that the sample code is shorter. It is also more robust. Before proxies were introduced, we used not to be able to properly render indexes for "special" array items such as NSNull, false booleans, or helpers. Proxies are really all about robustness.
+
+
+## v5.4.4
+
+- Fix a memory leak in [overridable partials](Guides/partials.md).
+- Until this version, GRMustache would not trigger delegate methods for objects conforming to both GRMustacheVariableHelper and GRMustacheTemplateDelegate protocols.
 
 ## v5.4.3
 
-Until this version, GRMustache would not trigger section tag helpers, variable tag helpers and section delegates in a few corner cases.
+Until this version, GRMustache would not trigger section tag helpers, variable tag helpers and tag delegates in a few corner cases.
 
 ## v5.4.2
 

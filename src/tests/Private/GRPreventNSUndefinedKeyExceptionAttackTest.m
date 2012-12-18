@@ -23,7 +23,7 @@
 #import "GRMustachePrivateAPITest.h"
 #import "GRMustache_private.h"
 #import "GRMustacheTemplate_private.h"
-#import "GRMustacheRuntime_private.h"
+#import "GRMustacheContext_private.h"
 #import <CoreData/CoreData.h>
 
 @interface GRPreventNSUndefinedKeyExceptionAttackTest : GRMustachePrivateAPITest {
@@ -59,28 +59,39 @@
     self.managedObjectContext = nil;
 }
 
-- (void)testNSUndefinedKeyExceptionSilencing
+- (void)testNSUndefinedKeyExceptionPrevention
 {
     [GRMustache preventNSUndefinedKeyExceptionAttack];
     
     GRMustacheTemplate *template = [GRMustacheTemplate templateFromString:@"foo:{{foo}}" error:nil];
     {
-        GRMustacheRuntimeDidCatchNSUndefinedKeyException = NO;
+        GRMustacheContextDidCatchNSUndefinedKeyException = NO;
         id object = [[[NSObject alloc] init] autorelease];
-        [template renderObject:object];
-        STAssertEquals(NO, GRMustacheRuntimeDidCatchNSUndefinedKeyException, @"");
+        [template renderObject:object error:NULL];
+        
+        // make sure object did not raise any exception
+        STAssertEquals(NO, GRMustacheContextDidCatchNSUndefinedKeyException, @"");
+        
+        // make sure object raises exception again
+        STAssertThrowsSpecificNamed([object valueForKey:@"foo"], NSException, NSUndefinedKeyException, nil);
     }
+    
     {
-        GRMustacheRuntimeDidCatchNSUndefinedKeyException = NO;
+        GRMustacheContextDidCatchNSUndefinedKeyException = NO;
         NSManagedObject *managedObject = [NSEntityDescription insertNewObjectForEntityForName:@"NSManagedObject" inManagedObjectContext:self.managedObjectContext];
-        [template renderObject:managedObject];
-        STAssertEquals(NO, GRMustacheRuntimeDidCatchNSUndefinedKeyException, @"");
+        [template renderObject:managedObject error:NULL];
+        
+        // make sure object did not raise any exception
+        STAssertEquals(NO, GRMustacheContextDidCatchNSUndefinedKeyException, @"");
+        
+        // make sure object raises exception again
+        STAssertThrowsSpecificNamed([managedObject valueForKey:@"foo"], NSException, NSUndefinedKeyException, nil);
     }
     
-    // Regression test: until 1.7.2, NSUndefinedKeyException guard would prevent rendering nil object
+    // Regression test: until 1.7.2, NSUndefinedKeyException prevention would fail with nil object
     
-    STAssertEqualObjects([template render], @"foo:", nil);
-    STAssertEqualObjects([template renderObject:nil], @"foo:", nil);
+    STAssertEqualObjects([template renderObject:nil error:NULL], @"foo:", nil);
+    STAssertEqualObjects([template renderObject:nil error:NULL], @"foo:", nil);
 }
 
 @end

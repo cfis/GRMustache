@@ -21,21 +21,17 @@
 // THE SOFTWARE.
 
 #import <SenTestingKit/SenTestingKit.h>
-#import "GRMustacheTemplateDelegate.h"
+#import "GRMustacheTagDelegate.h"
 
 @interface GRMustacheTestBase: SenTestCase
 @property (nonatomic, readonly) NSBundle *testBundle;
 @end
 
-@interface GRMustacheTestingDelegate : NSObject<GRMustacheTemplateDelegate> {
-    void(^_templateWillRenderBlock)(GRMustacheTemplate *template);
-    void(^_templateDidRenderBlock)(GRMustacheTemplate *template);
-    void(^_templateWillInterpretBlock)(GRMustacheTemplate *template, GRMustacheInvocation *invocation, GRMustacheInterpretation interpretation);
-    void(^_templateDidInterpretBlock)(GRMustacheTemplate *template, GRMustacheInvocation *invocation, GRMustacheInterpretation interpretation);
+@interface GRMustacheTestingDelegate : NSObject<GRMustacheTagDelegate> {
+    id(^_mustacheTagWillRenderBlock)(GRMustacheTag *tag, id object);
+    void(^_mustacheTagDidRenderBlock)(GRMustacheTag *tag, id object, NSString *rendering);
 }
-@property (nonatomic, copy) void(^templateWillRenderBlock)(GRMustacheTemplate *template);
-@property (nonatomic, copy) void(^templateDidRenderBlock)(GRMustacheTemplate *template);
-@property (nonatomic, copy) void(^templateWillInterpretBlock)(GRMustacheTemplate *template, GRMustacheInvocation *invocation, GRMustacheInterpretation interpretation);
-@property (nonatomic, copy) void(^templateDidInterpretBlock)(GRMustacheTemplate *template, GRMustacheInvocation *invocation, GRMustacheInterpretation interpretation);
+@property (nonatomic, copy) id(^mustacheTagWillRenderBlock)(GRMustacheTag *tag, id object);
+@property (nonatomic, copy) void(^mustacheTagDidRenderBlock)(GRMustacheTag *tag, id object, NSString *rendering);
 @end
 

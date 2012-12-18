@@ -104,28 +104,28 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
  * 
  * @param name            The name of the template
  * @param baseTemplateID  The template ID of the enclosing template, or nil.
- * @param outError        If there is an error loading or parsing template and
+ * @param error           If there is an error loading or parsing template and
  *                        partials, upon return contains an NSError object that
  *                        describes the problem.
  *
  * @return a template
  */
-- (GRMustacheTemplate *)templateForName:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)outError;
+- (GRMustacheTemplate *)templateNamed:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)error;
 
 /**
- * Parses templateString and returns rendering elements.
+ * Parses templateString and returns template components.
  * 
  * @param templateString  A Mustache template string.
  * @param templateID      The template ID of the template, or nil if the
  *                        template string is not tied to any identified template.
- * @param outError        If there is an error, upon return contains an NSError
+ * @param error           If there is an error, upon return contains an NSError
  *                        object that describes the problem.
  *
- * @return an array of objects conforming to the GRMustacheRenderingElement protocol.
+ * @return an array of objects conforming to the GRMustacheTemplateComponent protocol.
  * 
  * @see GRMustacheTemplateRepository
  */
-- (NSArray *)renderingElementsFromString:(NSString *)templateString templateID:(id)templateID error:(NSError **)outError;
+- (NSArray *)templateComponentsFromString:(NSString *)templateString templateID:(id)templateID error:(NSError **)error;
 
 @end
 
@@ -135,11 +135,6 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
 + (id)templateRepositoryWithBaseURL:(NSURL *)URL
 {
     return [[[GRMustacheTemplateRepositoryBaseURL alloc] initWithBaseURL:URL templateExtension:GRMustacheDefaultExtension encoding:NSUTF8StringEncoding] autorelease];
-}
-
-+ (id)templateRepositoryWithBaseURL:(NSURL *)URL templateExtension:(NSString *)ext
-{
-    return [[[GRMustacheTemplateRepositoryBaseURL alloc] initWithBaseURL:URL templateExtension:ext encoding:NSUTF8StringEncoding] autorelease];
 }
 
 + (id)templateRepositoryWithBaseURL:(NSURL *)URL templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
@@ -152,11 +147,6 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     return [[[GRMustacheTemplateRepositoryDirectory alloc] initWithDirectory:path templateExtension:GRMustacheDefaultExtension encoding:NSUTF8StringEncoding] autorelease];
 }
 
-+ (id)templateRepositoryWithDirectory:(NSString *)path templateExtension:(NSString *)ext
-{
-    return [[[GRMustacheTemplateRepositoryDirectory alloc] initWithDirectory:path templateExtension:ext encoding:NSUTF8StringEncoding] autorelease];
-}
-
 + (id)templateRepositoryWithDirectory:(NSString *)path templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
 {
     return [[[GRMustacheTemplateRepositoryDirectory alloc] initWithDirectory:path templateExtension:ext encoding:encoding] autorelease];
@@ -167,17 +157,12 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     return [[[GRMustacheTemplateRepositoryBundle alloc] initWithBundle:bundle templateExtension:GRMustacheDefaultExtension encoding:NSUTF8StringEncoding] autorelease];
 }
 
-+ (id)templateRepositoryWithBundle:(NSBundle *)bundle templateExtension:(NSString *)ext
-{
-    return [[[GRMustacheTemplateRepositoryBundle alloc] initWithBundle:bundle templateExtension:ext encoding:NSUTF8StringEncoding] autorelease];
-}
-
 + (id)templateRepositoryWithBundle:(NSBundle *)bundle templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
 {
     return [[[GRMustacheTemplateRepositoryBundle alloc] initWithBundle:bundle templateExtension:ext encoding:encoding] autorelease];
 }
 
-+ (id)templateRepositoryWithPartialsDictionary:(NSDictionary *)partialsDictionary
++ (id)templateRepositoryWithDictionary:(NSDictionary *)partialsDictionary
 {
     return [[[GRMustacheTemplateRepositoryPartialsDictionary alloc] initWithPartialsDictionary:partialsDictionary] autorelease];
 }
@@ -202,25 +187,28 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     [super dealloc];
 }
 
-- (GRMustacheTemplate *)templateForName:(NSString *)name error:(NSError **)outError
+- (GRMustacheTemplate *)templateNamed:(NSString *)name error:(NSError **)error
 {
-    return [self templateForName:name relativeToTemplateID:_currentlyParsedTemplateID error:outError];
+    return [self templateNamed:name relativeToTemplateID:_currentlyParsedTemplateID error:error];
 }
 
-- (GRMustacheTemplate *)templateFromString:(NSString *)templateString error:(NSError **)outError
+- (GRMustacheTemplate *)templateFromString:(NSString *)templateString error:(NSError **)error
 {
-    NSArray *renderingElements = [self renderingElementsFromString:templateString templateID:nil error:outError];
-    if (!renderingElements) {
+    NSArray *templateComponents = [self templateComponentsFromString:templateString templateID:nil error:error];
+    if (!templateComponents) {
         return nil;
     }
-    return [GRMustacheTemplate templateWithInnerElements:renderingElements];
+    
+    GRMustacheTemplate *template = [[[GRMustacheTemplate alloc] init] autorelease];
+    template.components = templateComponents;
+    return template;
 }
 
 #pragma mark Private
 
-- (NSArray *)renderingElementsFromString:(NSString *)templateString templateID:(id)templateID error:(NSError **)outError
+- (NSArray *)templateComponentsFromString:(NSString *)templateString templateID:(id)templateID error:(NSError **)error
 {
-    NSArray *renderingElements = nil;
+    NSArray *templateComponents = nil;
     @autoreleasepool {
         // Create a Mustache compiler
         GRMustacheCompiler *compiler = [[[GRMustacheCompiler alloc] init] autorelease];
@@ -237,28 +225,31 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
         // Parse
         [parser parseTemplateString:templateString templateID:templateID];
         
-        // Extract rendering elements from the compiler
-        renderingElements = [[compiler renderingElementsReturningError:outError] retain];
+        // Extract template components from the compiler
+        templateComponents = [[compiler templateComponentsReturningError:error] retain];
         
-        // make sure outError is not released by autoreleasepool
-        if (!renderingElements && outError != NULL) [*outError retain];
+        // make sure error is not released by autoreleasepool
+        if (!templateComponents && error != NULL) [*error retain];
     }
-    if (!renderingElements && outError != NULL) [*outError autorelease];
-    return [renderingElements autorelease];
+    if (!templateComponents && error != NULL) [*error autorelease];
+    return [templateComponents autorelease];
 }
 
-- (GRMustacheTemplate *)templateForName:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)outError
+- (GRMustacheTemplate *)templateNamed:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)error
 {
     id templateID = nil;
     if (name) {
        templateID = [self.dataSource templateRepository:self templateIDForName:name relativeToTemplateID:baseTemplateID];
     }
     if (templateID == nil) {
-        if (outError != NULL) {
-            *outError = [NSError errorWithDomain:GRMustacheErrorDomain
-                                            code:GRMustacheErrorCodeTemplateNotFound
-                                        userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"No such template: %@", name, nil]
-                                                                             forKey:NSLocalizedDescriptionKey]];
+        NSError *missingTemplateError = [NSError errorWithDomain:GRMustacheErrorDomain
+                                                            code:GRMustacheErrorCodeTemplateNotFound
+                                                        userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"No such template: `%@`", name, nil]
+                                                                                             forKey:NSLocalizedDescriptionKey]];
+        if (error != NULL) {
+            *error = missingTemplateError;
+        } else {
+            NSLog(@"GRMustache error: %@", missingTemplateError.localizedDescription);
         }
         return nil;
     }
@@ -272,15 +263,16 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
         NSError *templateStringError = nil;
         NSString *templateString = [self.dataSource templateRepository:self templateStringForTemplateID:templateID error:&templateStringError];
         if (!templateString) {
-            if (outError != NULL) {
-                // make sure we return an error
-                if (templateStringError == nil) {
-                    templateStringError = [NSError errorWithDomain:GRMustacheErrorDomain
-                                                              code:GRMustacheErrorCodeTemplateNotFound
-                                                          userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"No such template: %@", name, nil]
-                                                                                               forKey:NSLocalizedDescriptionKey]];
-                }
-                *outError = templateStringError;
+            if (templateStringError == nil) {
+                templateStringError = [NSError errorWithDomain:GRMustacheErrorDomain
+                                                          code:GRMustacheErrorCodeTemplateNotFound
+                                                      userInfo:[NSDictionary dictionaryWithObject:[NSString stringWithFormat:@"No such template: `%@`", name, nil]
+                                                                                           forKey:NSLocalizedDescriptionKey]];
+            }
+            if (error != NULL) {
+                *error = templateStringError;
+            } else {
+                NSLog(@"GRMustache error: %@", templateStringError.localizedDescription);
             }
             return nil;
         }
@@ -289,31 +281,31 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
         // store an empty template before compiling, so that we support
         // recursive partials
         
-        template = [GRMustacheTemplate templateWithInnerElements:nil];
+        template = [[[GRMustacheTemplate alloc] init] autorelease];
         [_templateForTemplateID setObject:template forKey:templateID];
         
         
         // We are about to compile templateString. GRMustacheCompiler may
-        // invoke [self templateForName:error:] when compiling partial tags
+        // invoke [self templateNamed:error:] when compiling partial tags
         // {{> name }}. Since partials are relative, we need to know the ID of
         // the currently parsed template.
         //
         // And since partials may embed other partials, we need to handle the
         // currently parsed template ID in a recursive way.
         
-        NSArray *renderingElements = nil;
+        NSArray *templateComponents = nil;
         {
             id previousParsedTemplateID = _currentlyParsedTemplateID;
             _currentlyParsedTemplateID = templateID;
-            renderingElements = [self renderingElementsFromString:templateString templateID:templateID error:outError];
+            templateComponents = [self templateComponentsFromString:templateString templateID:templateID error:error];
             _currentlyParsedTemplateID = previousParsedTemplateID;
         }
         
         
         // compiling done
         
-        if (renderingElements) {
-            template.innerElements = renderingElements;
+        if (templateComponents) {
+            template.components = templateComponents;
         } else {
             // forget invalid empty template
             [_templateForTemplateID removeObjectForKey:templateID];
@@ -381,10 +373,10 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     return [[[_baseURL URLByAppendingPathComponent:name] URLByAppendingPathExtension:_templateExtension] URLByStandardizingPath];
 }
 
-- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)outError
+- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)error
 {
     NSAssert([templateID isKindOfClass:[NSURL class]], @"");
-    return [NSString stringWithContentsOfURL:(NSURL *)templateID encoding:_encoding error:outError];
+    return [NSString stringWithContentsOfURL:(NSURL *)templateID encoding:_encoding error:error];
 }
 
 @end
@@ -445,10 +437,10 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     return [[[_directoryPath stringByAppendingPathComponent:name] stringByAppendingPathExtension:_templateExtension] stringByStandardizingPath];
 }
 
-- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)outError
+- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)error
 {
     NSAssert([templateID isKindOfClass:[NSString class]], @"");
-    return [NSString stringWithContentsOfFile:(NSString *)templateID encoding:_encoding error:outError];
+    return [NSString stringWithContentsOfFile:(NSString *)templateID encoding:_encoding error:error];
 }
 
 @end
@@ -491,10 +483,10 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     return [_bundle pathForResource:name ofType:_templateExtension];
 }
 
-- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)outError
+- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)error
 {
     NSAssert([templateID isKindOfClass:[NSString class]], @"");
-    return [NSString stringWithContentsOfFile:(NSString *)templateID encoding:_encoding error:outError];
+    return [NSString stringWithContentsOfFile:(NSString *)templateID encoding:_encoding error:error];
 }
 
 @end
@@ -531,7 +523,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     return name;
 }
 
-- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)outError
+- (NSString *)templateRepository:(GRMustacheTemplateRepository *)templateRepository templateStringForTemplateID:(id)templateID error:(NSError **)error
 {
     return [_partialsDictionary objectForKey:templateID];
 }

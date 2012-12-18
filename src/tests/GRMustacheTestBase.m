@@ -34,45 +34,29 @@
 @end
 
 @implementation GRMustacheTestingDelegate
-@synthesize templateWillRenderBlock=_templateWillRenderBlock;
-@synthesize templateDidRenderBlock=_templateDidRenderBlock;
-@synthesize templateWillInterpretBlock=_templateWillInterpretBlock;
-@synthesize templateDidInterpretBlock=_templateDidInterpretBlock;
+@synthesize mustacheTagWillRenderBlock=_mustacheTagWillRenderBlock;
+@synthesize mustacheTagDidRenderBlock=_mustacheTagDidRenderBlock;
 
 - (void)dealloc
 {
-    self.templateWillRenderBlock = nil;
-    self.templateDidRenderBlock = nil;
-    self.templateWillInterpretBlock = nil;
-    self.templateDidInterpretBlock = nil;
+    self.mustacheTagWillRenderBlock = nil;
+    self.mustacheTagDidRenderBlock = nil;
     [super dealloc];
 }
 
-- (void)templateWillRender:(GRMustacheTemplate *)template
+- (id)mustacheTag:(GRMustacheTag *)tag willRenderObject:(id)object
 {
-    if (self.templateWillRenderBlock) {
-        self.templateWillRenderBlock(template);
+    if (self.mustacheTagWillRenderBlock) {
+        return self.mustacheTagWillRenderBlock(tag, object);
+    } else {
+        return object;
     }
 }
 
-- (void)templateDidRender:(GRMustacheTemplate *)template
+- (void)mustacheTag:(GRMustacheTag *)tag didRenderObject:(id)object as:(NSString *)rendering
 {
-    if (self.templateDidRenderBlock) {
-        self.templateDidRenderBlock(template);
-    }
-}
-
-- (void)template:(GRMustacheTemplate *)template willInterpretReturnValueOfInvocation:(GRMustacheInvocation *)invocation as:(GRMustacheInterpretation)interpretation
-{
-    if (self.templateWillInterpretBlock) {
-        self.templateWillInterpretBlock(template, invocation, interpretation);
-    }
-}
-
-- (void)template:(GRMustacheTemplate *)template didInterpretReturnValueOfInvocation:(GRMustacheInvocation *)invocation as:(GRMustacheInterpretation)interpretation
-{
-    if (self.templateDidInterpretBlock) {
-        self.templateDidInterpretBlock(template, invocation, interpretation);
+    if (self.mustacheTagDidRenderBlock) {
+        self.mustacheTagDidRenderBlock(tag, object, rendering);
     }
 }
 

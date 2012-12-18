@@ -23,6 +23,11 @@
 #import <Foundation/Foundation.h>
 #import "GRMustacheAvailabilityMacros_private.h"
 
+@protocol GRMustacheRendering;
+@class GRMustacheTag;
+@class GRMustacheContext;
+@class GRMustacheTemplateRepository;
+
 // Documented in GRMustache.h
 typedef struct {
     int major;
@@ -37,5 +42,16 @@ typedef struct {
 
 // Documented in GRMustache.h
 + (void)preventNSUndefinedKeyExceptionAttack GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustache.h
++ (id<GRMustacheRendering>)renderingObjectForObject:(id)object GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustache.h
++ (id<GRMustacheRendering>)renderingObjectWithBlock:(NSString *(^)(GRMustacheTag *tag, GRMustacheContext *context, BOOL *HTMLSafe, NSError **error))block GRMUSTACHE_API_PUBLIC;
+
+/**
+ * TODO
+ */
++ (id<GRMustacheRendering>)renderingObjectWithObject:(id)object implementation:(IMP)implementation GRMUSTACHE_API_INTERNAL;
 
 @end

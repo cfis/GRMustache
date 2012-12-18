@@ -21,7 +21,7 @@
 // THE SOFTWARE.
 
 #import "GRMustacheImplicitIteratorExpression_private.h"
-#import "GRMustacheRuntime_private.h"
+#import "GRMustacheContext_private.h"
 
 @implementation GRMustacheImplicitIteratorExpression
 
@@ -38,10 +38,12 @@
 
 #pragma mark - GRMustacheExpression
 
-- (id)evaluateInRuntime:(GRMustacheRuntime *)runtime asFilterValue:(BOOL)filterValue
+- (id)valueWithContext:(GRMustacheContext *)context protected:(BOOL *)protected
 {
-    NSAssert(!filterValue, @"GRMustacheImplicitIteratorExpression invoked for a filter");
-    return [runtime currentContextValue];
+    if (protected != NULL) {
+        *protected = NO;
+    }
+    return [context currentContextValue];
 }
 
 @end

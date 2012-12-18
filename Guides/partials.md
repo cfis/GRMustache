@@ -1,9 +1,9 @@
-[up](introduction.md), [next](template_repositories.md)
+[up](../../../../GRMustache#documentation), [next](template_repositories.md)
 
 Partial templates
 =================
 
-When a `{{>name}}` Mustache tag occurs in a template, GRMustache renders in place the content of another template, the *partial*, identified by its name.
+When a `{{> name }}` Mustache tag occurs in a template, GRMustache renders in place the content of another template, the *partial*, identified by its name.
 
 You can write recursive partials. Just avoid infinite loops in your context objects.
 
@@ -19,25 +19,20 @@ Depending on the method which has been used to create the original template, par
 - In the specified bundle, with ".mustache" extension:
     - `renderObject:fromResource:bundle:error:`
     - `templateFromResource:bundle:error:`
-- In the specified bundle, with the provided extension:
-    - `renderObject:fromResource:withExtension:bundle:error:`
-    - `templateFromResource:withExtension:bundle:error:`
 - Relatively to the URL of the including template, with the same extension:
-    - `renderObject:fromContentsOfURL:error:`
     - `templateFromContentsOfURL:error:`
 - Relatively to the path of the including template, with the same extension:
-    - `renderObject:fromContentsOfFile:error:`
     - `templateFromContentsOfFile:error:`
 
-Check [Guides/template_repositories.md](template_repositories.md) for more partial loading strategies.
+Check the [Template Repositories Guide](template_repositories.md) for more partial loading strategies.
 
 
 Partials in the file system
 ---------------------------
 
-When you identify a template through a URL or a file path (see [templates.md](templates.md)), you are able to navigate through a hierarchy of directories and partial files.
+When you identify a template through a URL or a file path (see the [Templates Guide](templates.md)), you are able to navigate through a hierarchy of directories and partial files.
 
-The partial tag `{{>name}}` interprets the *name* as a *relative path*, and loads the partial template relatively to the embedding template. For example, given the following hierarchy:
+The partial tag `{{> name }}` interprets the *name* as a *relative path*, and loads the partial template relatively to the embedding template. For example, given the following hierarchy:
 
     - templates
         - a.mustache
@@ -46,7 +41,7 @@ The partial tag `{{>name}}` interprets the *name* as a *relative path*, and load
 
 The a.mustache template can embed b.mustache with the `{{> partials/b }}` tag, and b.mustache can embed a.mustache with the `{{> ../a }}` tag.
 
-Never use file extensions in your partial tags. `{{> partials/b.mustache }}` would have you get an error of domain `GRMustacheErrorDomain` and code `GRMustacheErrorCodeTemplateNotFound`. 
+*Never use file extensions in your partial tags.* `{{> partials/b.mustache }}` would try to load the `b.mustache.mustache` file which does not exist: you'd get an error of domain `GRMustacheErrorDomain` and code `GRMustacheErrorCodeTemplateNotFound`.
 
 ### Absolute paths to partials
 
@@ -61,51 +56,16 @@ The first partial tag provides a *relative path*, and refers to a different temp
 
 The latter always references the same partial, with an *absolute path*.
 
-Absolute partial paths need a root, and the objects that set this root are `GRMustacheTemplateRepository` objects. The rest of the story is documented at [template_repositories.md](template_repositories.md).
+Absolute partial paths need a root, and the objects that set this root are `GRMustacheTemplateRepository` objects. The rest of the story is documented at [Template Repositories Guide](template_repositories.md).
 
-### Template Hierarchy in an NSBundle
-
-Bundles provide a flat, non-hierarchical, resource storage. Hence this hierarchy of partials is not available to templates stored as bundle resources.
-
-However, You can embed a full directory and its contents as a bundle resource, and fall back to URL-based of file path-based APIs:
-
-```objc
-// URL of the templates directory resource
-NSString *templatesPath = [[NSBundle mainBundle] pathForResource:@"templates" ofType:nil];
-
-// Render a.mustache
-NSString *aPath = [templatesPath stringByAppendingPathComponent:@"a.mustache"];
-GRMustacheTemplate *aTemplate = [GRMustacheTemplate templateFromContentsOfFile:aPath error:NULL];
-[aTemplate render...];
-
-// Render b.mustache
-NSString *bPath = [templatesPath stringByAppendingPathComponent:@"partials/b.mustache"];
-GRMustacheTemplate *bTemplate = [GRMustacheTemplate templateFromContentsOfFile:bPath error:NULL];
-[bTemplate render...];
-```
-
-You may also use the `GRMustacheTemplateRepository` class, that is documented in [template_repositories.md](template_repositories.md):
-
-```objc
-// Repository of templates stored in templates directory resource:
-NSString *templatesPath = [[NSBundle mainBundle] pathForResource:@"templates" ofType:nil];
-GRMustacheTemplateRepository *repository = [GRMustacheTemplateRepository templateRepositoryWithDirectory:templatesPath];
-
-// Render a.mustache
-GRMustacheTemplate *aTemplate = [repository templateForName:@"a" error:NULL];
-[aTemplate render...];
-
-// Render b.mustache
-GRMustacheTemplate *bTemplate = [repository templateForName:@"partials/b" error:NULL];
-[bTemplate render...];
-```
 
 Overriding portions of partials
 -------------------------------
 
 Partials may contain *overridable sections*. Those sections start with a dollar instead of a pound. For example, let's consider the following partial:
 
-    page_layout.mustache
+`page_layout.mustache`:
+
     <html>
     <head>
         <title>{{$page_title}}Default title{{/page_title}}</title>
@@ -120,7 +80,8 @@ Partials may contain *overridable sections*. Those sections start with a dollar 
 
 You can embed such an overridable partial, and override its sections with the `{{<partial}}...{{/partial}}` syntax:
 
-    article_page.mustache
+`article_page.mustache`:
+
     {{<page_layout}}
     
         {{! override page_title }}
@@ -128,7 +89,7 @@ You can embed such an overridable partial, and override its sections with the `{
         
         {{! override page_content }}
         {{$page_content}}
-            {{$article}}
+            {{#article}}
                 {{body}}
                 by {{author}}
             {{/article}}
@@ -138,15 +99,97 @@ You can embed such an overridable partial, and override its sections with the `{
 
 When you render `article.mustache`, you will get a full HTML page.
 
-You can override a section with attached data, as well:
+### Concatenation of overriding sections
 
-    anonymous_article.mustache
-    {{<article_page}}
-        {{$article}}
-            {{body}}
-            by anonymous coward
-        {{/article}}
-    {{/article_page}}
+In Ruby on Rails, multiple `<% content_for :foo do %>...<% end %>` provide multiple contents for a single `<%= yield :foo %>`. You can achieve the same effect:
 
-[up](introduction.md), [next](template_repositories.md)
+`article_page.mustache`:
+
+    {{<page}}
+        {{$layout_javascript}}
+            <script type="text/javascript" src="article.js"></script>
+        {{/layout_javascript}}
+
+        {{$page_content}}
+            article content
+        {{/page_content}}
+    {{/page}}
+
+`page.mustache`:
+
+    {{<layout}}
+        {{$layout_javascript}}
+            <script type="text/javascript" src="page.js"></script>
+        {{/layout_javascript}}
+
+        {{>page_header}}
+
+        {{$layout_content}}
+            {{$page_content}}
+            {{/page_content}}
+        {{/layout_content}}
+    
+        {{$layout_content}}
+            page footer
+        {{/layout_content}}
+
+    {{/layout}}
+
+`page_header.mustache`:
+
+    {{$layout_javascript}}
+        <script type="text/javascript" src="header.js"></script>
+    {{/layout_javascript}}
+    {{$layout_content}}
+        page header
+    {{/layout_content}}
+
+`layout.mustache`:
+
+    <html>
+    <head>
+        {{$layout_javascript}}{{/layout_javascript}}
+    </head>
+    <body>
+        {{$layout_content}}{{/layout_content}}
+    </body>
+    </html>
+
+`Render.m`:
+
+    NSString *rendering = [GRMustacheTemplate renderObject:nil fromResource:@"article_page" bundle:nil error:NULL];
+
+Final rendering:
+
+    <html>
+    <head>
+        <script type="text/javascript" src="page.js"></script>
+        <script type="text/javascript" src="header.js"></script>
+        <script type="text/javascript" src="article.js"></script>
+    </head>
+    <body>
+        page header
+        article content
+        page footer
+    </body>
+    </html>
+
+
+Dynamic partials
+----------------
+
+Partial templates identified with a partial tag such as `{{> name }}` are *hard-coded*. Such a tag always renders the same partial template.
+
+You may want to choose the rendered partial at runtime: this use case is covered in the [Rendering Objects Guide](rendering_objects.md).
+
+
+Compatibility with other Mustache implementations
+-------------------------------------------------
+
+The [Mustache specification](https://github.com/mustache/spec) does not have the concepts of relative vs. absolute partial paths, overridable sections, or dynamic partials.
+
+**As a consequence, if your goal is to design templates that remain compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), use those features with great care.**
+
+
+[up](../../../../GRMustache#documentation), [next](template_repositories.md)
 

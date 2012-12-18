@@ -75,18 +75,6 @@
 - (NSRange)rangeOfString:(NSString *)needle inTemplateString:(NSString *)haystack startingAtIndex:(NSUInteger)p consumedNewLines:(NSUInteger *)outLines;
 
 /**
- * Returns an expression from a string.
- *
- * @param string        A string.
- * @param outInvalid    If the string contains an invalid expression, upon
- *                      return contains YES.
- *
- * @return An expression, or nil if the parsing fails or if the expression is
- * empty.
- */
-- (GRMustacheExpression *)parseExpression:(NSString *)string invalid:(BOOL *)outInvalid;
-
-/**
  * Returns a template name from the inner string of a tag.
  *
  * @param innerTagString  the inner string of a tag.
@@ -207,7 +195,7 @@
         
         // ctag was not found
         if (crange.location == NSNotFound) {
-            [self failWithParseErrorAtLine:line description:@"Unmatched opening tag" templateID:templateID];
+            [self failWithParseErrorAtLine:line description:@"Unclosed Mustache tag" templateID:templateID];
             return;
         }
         
@@ -216,13 +204,13 @@
         
         // empty tag is not allowed
         if (tag.length == 0) {
-            [self failWithParseErrorAtLine:line description:@"Empty tag" templateID:templateID];
+            [self failWithParseErrorAtLine:line description:@"Empty Mustache tag" templateID:templateID];
             return;
         }
         
         // tag must not contain otag
         if ([tag rangeOfString:_otag].location != NSNotFound) {
-            [self failWithParseErrorAtLine:line description:@"Unmatched opening tag" templateID:templateID];
+            [self failWithParseErrorAtLine:line description:@"Unclosed Mustache tag" templateID:templateID];
             return;
         }
         
@@ -247,7 +235,7 @@
                 
             case GRMustacheTokenTypeEscapedVariable: {    // default value in tokenTypeForCharacter = 0 = GRMustacheTokenTypeEscapedVariable
                 BOOL invalid;
-                GRMustacheExpression * expression = [self parseExpression:tag invalid:&invalid];
+                GRMustacheExpression * expression = [GRMustacheParser parseExpression:tag invalid:&invalid];
                 token = [GRMustacheToken tokenWithType:GRMustacheTokenTypeEscapedVariable
                                         templateString:templateString
                                             templateID:templateID
@@ -266,7 +254,7 @@
             case GRMustacheTokenTypeOverridableSectionOpening:
             case GRMustacheTokenTypeUnescapedVariable: {
                 BOOL invalid;
-                GRMustacheExpression * expression = [self parseExpression:[tag substringFromIndex:1] invalid:&invalid];   // strip initial '#', '^' etc.
+                GRMustacheExpression * expression = [GRMustacheParser parseExpression:[tag substringFromIndex:1] invalid:&invalid];   // strip initial '#', '^' etc.
                 token = [GRMustacheToken tokenWithType:tokenType
                                         templateString:templateString
                                             templateID:templateID
@@ -284,7 +272,7 @@
                 // Closing tags close sections and super template tags, so we
                 // parse both expression and templateName.
                 BOOL invalid;
-                GRMustacheExpression * expression = [self parseExpression:[tag substringFromIndex:1] invalid:&invalid];   // strip initial '/' etc.
+                GRMustacheExpression * expression = [GRMustacheParser parseExpression:[tag substringFromIndex:1] invalid:&invalid];   // strip initial '/' etc.
                 NSString *templateName = [self parseTemplateName:[tag substringFromIndex:1]];   // strip initial '/'
                 
                 token = [GRMustacheToken tokenWithType:tokenType
@@ -385,76 +373,28 @@
     }
 }
 
-#pragma mark Private
-
-- (BOOL)shouldContinueAfterParsingToken:(GRMustacheToken *)token
++ (GRMustacheExpression *)parseExpression:(NSString *)string invalid:(BOOL *)outInvalid
 {
-    if ([_delegate respondsToSelector:@selector(parser:shouldContinueAfterParsingToken:)]) {
-        return [_delegate parser:self shouldContinueAfterParsingToken:token];
-    }
-    return YES;
-}
-
-- (void)failWithParseErrorAtLine:(NSInteger)line description:(NSString *)description templateID:(id)templateID
-{
-    if ([_delegate respondsToSelector:@selector(parser:didFailWithError:)]) {
-        NSString *localizedDescription;
-        if (templateID) {
-            localizedDescription = [NSString stringWithFormat:@"Parse error at line %lu of template %@: %@", (unsigned long)line, templateID, description];
-        } else {
-            localizedDescription = [NSString stringWithFormat:@"Parse error at line %lu: %@", (unsigned long)line, description];
-        }
-        [_delegate parser:self didFailWithError:[NSError errorWithDomain:GRMustacheErrorDomain
-                                                                       code:GRMustacheErrorCodeParseError
-                                                                   userInfo:[NSDictionary dictionaryWithObject:localizedDescription
-                                                                                                        forKey:NSLocalizedDescriptionKey]]];
-    }
-}
-
-- (NSRange)rangeOfString:(NSString *)needle inTemplateString:(NSString *)haystack startingAtIndex:(NSUInteger)p consumedNewLines:(NSUInteger *)outLines
-{
-    NSUInteger needleLength = needle.length;
-    NSUInteger haystackLength = haystack.length;
-    unichar firstNeedleChar = [needle characterAtIndex:0];
-    unichar templateChar;
-    
-    assert(outLines);
-    *outLines = 0;
-    
-    while (p + needleLength <= haystackLength) {
-        templateChar = [haystack characterAtIndex:p];
-        if (templateChar == '\n') {
-            (*outLines)++;
-        } else if (templateChar == firstNeedleChar && [[haystack substringWithRange:NSMakeRange(p, needle.length)] isEqualToString:needle]) {
-            return NSMakeRange(p, needle.length);
-        }
-        p++;
-    }
-    
-    return NSMakeRange(NSNotFound, 0);
-}
-
-- (GRMustacheExpression *)parseExpression:(NSString *)string invalid:(BOOL *)outInvalid
-{
-    //    -> ;;sm_parenLevel=0, canFilter=YES -> stateInitial
+    //    -> ;;sm_parenLevel=0 -> stateInitial
     //    stateInitial -> ' ' -> stateInitial
-    //    stateInitial -> ;'.';canFilter=NO -> stateLeadingDot
-    //    stateInitial -> ;'a';canFilter=YES -> stateIdentifier
+    //    stateInitial -> '.' -> stateLeadingDot
+    //    stateInitial -> 'a' -> stateIdentifier
     //    stateInitial -> sm_parenLevel==0;EOF; -> stateEmpty
     //    stateLeadingDot -> 'a' -> stateIdentifier
     //    stateLeadingDot -> ' ' -> stateIdentifierDone
+    //    stateIdentifier -> '(';++sm_parenLevel -> stateInitial
     //    stateLeadingDot -> sm_parenLevel>0;')';--sm_parenLevel -> stateFilterDone
     //    stateLeadingDot -> sm_parenLevel==0;EOF; -> stateValid
     //    stateIdentifier -> 'a' -> stateIdentifier
     //    stateIdentifier -> '.' -> stateWaitingForIdentifier
     //    stateIdentifier -> ' ' -> stateIdentifierDone
-    //    stateIdentifier -> canFilter;'(';++sm_parenLevel -> stateInitial
+    //    stateIdentifier -> '(';++sm_parenLevel -> stateInitial
     //    stateIdentifier -> sm_parenLevel>0;')';--sm_parenLevel -> stateFilterDone
     //    stateIdentifier -> sm_parenLevel==0;EOF; -> stateValid
     //    stateWaitingForIdentifier -> 'a' -> stateIdentifier
     //    stateIdentifierDone -> ' ' -> stateIdentifierDone
     //    stateIdentifierDone -> sm_parenLevel==0;EOF; -> stateValid
-    //    stateIdentifierDone -> canFilter;'(';++sm_parenLevel -> stateInitial
+    //    stateIdentifierDone -> '(';++sm_parenLevel -> stateInitial
     //    stateFilterDone -> ' ' -> stateFilterDone
     //    stateFilterDone -> '.' -> stateWaitingForIdentifier
     //    stateFilterDone -> '(';++sm_parenLevel -> stateInitial
@@ -473,7 +413,6 @@
         stateError,
         stateValid
     } state = stateInitial;
-    BOOL canFilter = NO;
     NSUInteger identifierStart = NSNotFound;
     NSMutableArray *filterExpressionStack = [NSMutableArray array];
     GRMustacheExpression *currentExpression=nil;
@@ -499,11 +438,10 @@
                         
                     case '.':
                         NSAssert(currentExpression == nil, @"WTF");
-                        canFilter = NO;
                         state = stateLeadingDot;
                         currentExpression = [GRMustacheImplicitIteratorExpression expression];
                         break;
-                    
+                        
                     case '(':
                         state = stateError;
                         break;
@@ -512,8 +450,24 @@
                         state = stateError;
                         break;
                         
+                    case ',':
+                        state = stateError;
+                        break;
+                        
+                    case '{':
+                    case '}':
+                    case '&':
+                    case '$':
+                    case '#':
+                    case '^':
+                    case '/':
+                    case '<':
+                    case '>':
+                        // invalid as an identifier start
+                        state = stateError;
+                        break;
+                        
                     default:
-                        canFilter = YES;
                         state = stateIdentifier;
                         
                         // enter stateIdentifier
@@ -535,9 +489,12 @@
                         state = stateError;
                         break;
                         
-                    case '(':
-                        state = stateError;
-                        break;
+                    case '(': {
+                        NSAssert(currentExpression, @"WTF");
+                        state = stateInitial;
+                        [filterExpressionStack addObject:currentExpression];
+                        currentExpression = nil;
+                    } break;
                         
                     case ')':
                         if (filterExpressionStack.count > 0) {
@@ -547,10 +504,38 @@
                             state = stateFilterDone;
                             GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
                             [filterExpressionStack removeLastObject];
-                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression parameterExpression:currentExpression];
+                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:NO];
                         } else {
                             state = stateError;
                         }
+                        break;
+                        
+                    case ',':
+                        if (filterExpressionStack.count > 0) {
+                            NSAssert(currentExpression, @"WTF");
+                            NSAssert(filterExpressionStack.count > 0, @"WTF");
+                            
+                            state = stateInitial;
+                            GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
+                            [filterExpressionStack removeLastObject];
+                            [filterExpressionStack addObject:[GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:YES]];
+                            currentExpression = nil;
+                        } else {
+                            state = stateError;
+                        }
+                        break;
+                        
+                    case '{':
+                    case '}':
+                    case '&':
+                    case '$':
+                    case '#':
+                    case '^':
+                    case '/':
+                    case '<':
+                    case '>':
+                        // invalid as an identifier start
+                        state = stateError;
                         break;
                         
                     default:
@@ -600,14 +585,10 @@
                             currentExpression = [GRMustacheIdentifierExpression expressionWithIdentifier:identifier];
                         }
                         
-                        if (canFilter) {
-                            NSAssert(currentExpression, @"WTF");
-                            state = stateInitial;
-                            [filterExpressionStack addObject:currentExpression];
-                            currentExpression = nil;
-                        } else {
-                            state = stateError;
-                        }
+                        NSAssert(currentExpression, @"WTF");
+                        state = stateInitial;
+                        [filterExpressionStack addObject:currentExpression];
+                        currentExpression = nil;
                     } break;
                         
                     case ')': {
@@ -625,11 +606,34 @@
                             state = stateFilterDone;
                             GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
                             [filterExpressionStack removeLastObject];
-                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression parameterExpression:currentExpression];
+                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:NO];
                         } else {
                             state = stateError;
                         }
                     } break;
+                        
+                    case ',': {
+                        // leave stateIdentifier
+                        NSString *identifier = [string substringWithRange:(NSRange){ .location = identifierStart, .length = i - identifierStart }];
+                        if (currentExpression) {
+                            currentExpression = [GRMustacheScopedExpression expressionWithBaseExpression:currentExpression scopeIdentifier:identifier];
+                        } else {
+                            currentExpression = [GRMustacheIdentifierExpression expressionWithIdentifier:identifier];
+                        }
+                        
+                        if (filterExpressionStack.count > 0) {
+                            NSAssert(currentExpression, @"WTF");
+                            NSAssert(filterExpressionStack.count > 0, @"WTF");
+                            state = stateInitial;
+                            GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
+                            [filterExpressionStack removeLastObject];
+                            [filterExpressionStack addObject:[GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:YES]];
+                            currentExpression = nil;
+                        } else {
+                            state = stateError;
+                        }
+                    } break;
+                        
                         
                     default:
                         break;
@@ -657,6 +661,23 @@
                         state = stateError;
                         break;
                         
+                    case ',':
+                        state = stateError;
+                        break;
+                        
+                    case '{':
+                    case '}':
+                    case '&':
+                    case '$':
+                    case '#':
+                    case '^':
+                    case '/':
+                    case '<':
+                    case '>':
+                        // invalid as an identifier start
+                        state = stateError;
+                        break;
+                        
                     default:
                         state = stateIdentifier;
                         
@@ -679,14 +700,10 @@
                         break;
                         
                     case '(':
-                        if (canFilter) {
-                            NSAssert(currentExpression, @"WTF");
-                            state = stateInitial;
-                            [filterExpressionStack addObject:currentExpression];
-                            currentExpression = nil;
-                        } else {
-                            state = stateError;
-                        }
+                        NSAssert(currentExpression, @"WTF");
+                        state = stateInitial;
+                        [filterExpressionStack addObject:currentExpression];
+                        currentExpression = nil;
                         break;
                         
                     case ')':
@@ -696,7 +713,21 @@
                             state = stateFilterDone;
                             GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
                             [filterExpressionStack removeLastObject];
-                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression parameterExpression:currentExpression];
+                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:NO];
+                        } else {
+                            state = stateError;
+                        }
+                        break;
+                        
+                    case ',':
+                        if (filterExpressionStack.count > 0) {
+                            NSAssert(currentExpression, @"WTF");
+                            NSAssert(filterExpressionStack.count > 0, @"WTF");
+                            state = stateInitial;
+                            GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
+                            [filterExpressionStack removeLastObject];
+                            [filterExpressionStack addObject:[GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:YES]];
+                            currentExpression = nil;
                         } else {
                             state = stateError;
                         }
@@ -707,7 +738,7 @@
                         break;
                 }
                 break;
-            
+                
             case stateFilterDone:
                 switch (c) {
                     case ' ':
@@ -734,7 +765,21 @@
                             state = stateFilterDone;
                             GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
                             [filterExpressionStack removeLastObject];
-                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression parameterExpression:currentExpression];
+                            currentExpression = [GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:NO];
+                        } else {
+                            state = stateError;
+                        }
+                        break;
+                        
+                    case ',':
+                        if (filterExpressionStack.count > 0) {
+                            NSAssert(currentExpression, @"WTF");
+                            NSAssert(filterExpressionStack.count > 0, @"WTF");
+                            state = stateInitial;
+                            GRMustacheExpression *filterExpression = [filterExpressionStack lastObject];
+                            [filterExpressionStack removeLastObject];
+                            [filterExpressionStack addObject:[GRMustacheFilteredExpression expressionWithFilterExpression:filterExpression argumentExpression:currentExpression curry:YES]];
+                            currentExpression = nil;
                         } else {
                             state = stateError;
                         }
@@ -794,7 +839,7 @@
         case stateWaitingForIdentifier:
             state = stateError;
             break;
-        
+            
         case stateIdentifierDone:
             if (filterExpressionStack.count == 0) {
                 NSAssert(currentExpression, @"WTF");
@@ -828,11 +873,15 @@
     
     switch (state) {
         case stateEmpty:
-            *outInvalid = NO;
+            if (outInvalid) {
+                *outInvalid = NO;
+            }
             return nil;
             
         case stateError:
-            *outInvalid = YES;
+            if (outInvalid) {
+                *outInvalid = YES;
+            }
             return nil;
             
         case stateValid:
@@ -845,6 +894,56 @@
     }
     
     return nil;
+}
+
+
+#pragma mark - Private
+
+- (BOOL)shouldContinueAfterParsingToken:(GRMustacheToken *)token
+{
+    if ([_delegate respondsToSelector:@selector(parser:shouldContinueAfterParsingToken:)]) {
+        return [_delegate parser:self shouldContinueAfterParsingToken:token];
+    }
+    return YES;
+}
+
+- (void)failWithParseErrorAtLine:(NSInteger)line description:(NSString *)description templateID:(id)templateID
+{
+    if ([_delegate respondsToSelector:@selector(parser:didFailWithError:)]) {
+        NSString *localizedDescription;
+        if (templateID) {
+            localizedDescription = [NSString stringWithFormat:@"Parse error at line %lu of template %@: %@", (unsigned long)line, templateID, description];
+        } else {
+            localizedDescription = [NSString stringWithFormat:@"Parse error at line %lu: %@", (unsigned long)line, description];
+        }
+        [_delegate parser:self didFailWithError:[NSError errorWithDomain:GRMustacheErrorDomain
+                                                                       code:GRMustacheErrorCodeParseError
+                                                                   userInfo:[NSDictionary dictionaryWithObject:localizedDescription
+                                                                                                        forKey:NSLocalizedDescriptionKey]]];
+    }
+}
+
+- (NSRange)rangeOfString:(NSString *)needle inTemplateString:(NSString *)haystack startingAtIndex:(NSUInteger)p consumedNewLines:(NSUInteger *)outLines
+{
+    NSUInteger needleLength = needle.length;
+    NSUInteger haystackLength = haystack.length;
+    unichar firstNeedleChar = [needle characterAtIndex:0];
+    unichar templateChar;
+    
+    assert(outLines);
+    *outLines = 0;
+    
+    while (p + needleLength <= haystackLength) {
+        templateChar = [haystack characterAtIndex:p];
+        if (templateChar == '\n') {
+            (*outLines)++;
+        } else if (templateChar == firstNeedleChar && [[haystack substringWithRange:NSMakeRange(p, needle.length)] isEqualToString:needle]) {
+            return NSMakeRange(p, needle.length);
+        }
+        p++;
+    }
+    
+    return NSMakeRange(NSNotFound, 0);
 }
 
 - (NSString *)parseTemplateName:(NSString *)innerTagString

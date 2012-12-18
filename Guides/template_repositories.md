@@ -1,4 +1,4 @@
-[up](introduction.md), [next](runtime.md)
+[up](../../../../GRMustache#documentation), [next](runtime.md)
 
 Template repositories
 =====================
@@ -7,15 +7,13 @@ You use the `GRMustacheTemplateRepository` class when you want to choose a speci
 
 This may happen in these two particular cases:
 
-- when the `[GRMustacheTemplate templateFrom...]` methods do not fit your needs (see [templates.md](templates.md)).
+- when the `[GRMustacheTemplate templateFrom...]` methods do not fit your needs (see the [Templates Guide](templates.md)).
 
     For example, your templates are not stored in the file system, or they are not encoded as UTF8.
     
 - when your templates are stored in a hierarchy of directories, and you want to specify an absolute path in a [partial tag](partials.md).
 
-    `{{> header}}` loads a `header` partial template stored next to its enclosing template, but `{{> /partials/header}}`, with a leading slash, loads a template located at the absolute path `/partials/header` from the root of the template repository.
-    
-    This absolute reference to a partial template reveals useful when implementing robust [variable tag helpers](variable_tag_helpers.md) that use partial templates.
+    `{{> header }}` loads a `header` partial template stored next to its enclosing template, but `{{> /partials/header }}`, with a leading slash, loads a template located at the absolute path `/partials/header` from the root of the template repository.
 
 Both use cases are covered by the `GRMustacheTemplateRepository` methods documented below.
 
@@ -31,11 +29,6 @@ Loading templates and partials from the file system
 + (id)templateRepositoryWithBaseURL:(NSURL *)url;
 
 // Loads templates and partials from a directory, with provided extension,
-// encoded in UTF8.
-+ (id)templateRepositoryWithBaseURL:(NSURL *)url
-                  templateExtension:(NSString *)ext;
-
-// Loads templates and partials from a directory, with provided extension,
 // encoded in provided encoding.
 + (id)templateRepositoryWithBaseURL:(NSURL *)url
                   templateExtension:(NSString *)ext
@@ -46,11 +39,6 @@ Loading templates and partials from the file system
 + (id)templateRepositoryWithDirectory:(NSString *)path;
 
 // Loads templates and partials from a directory, with provided extension,
-// encoded in UTF8.
-+ (id)templateRepositoryWithDirectory:(NSString *)path
-                    templateExtension:(NSString *)ext;
-
-// Loads templates and partials from a directory, with provided extension,
 // encoded in provided encoding.
 + (id)templateRepositoryWithDirectory:(NSString *)path
                     templateExtension:(NSString *)ext
@@ -59,11 +47,6 @@ Loading templates and partials from the file system
 // Loads templates and partials from a bundle, with "mustache" extension,
 // encoded in UTF8.
 + (id)templateRepositoryWithBundle:(NSBundle *)bundle;  // nil stands for the main bundle
-
-// Loads templates and partials from a bundle, with provided extension, encoded
-// in UTF8.
-+ (id)templateRepositoryWithBundle:(NSBundle *)bundle   // nil stands for the main bundle
-                 templateExtension:(NSString *)ext;
 
 // Loads templates and partials from a bundle, with provided extension, encoded
 // in provided encoding.
@@ -84,7 +67,7 @@ You may now load a template:
 
 ```objc
 // Loads path/to/templates/document.mustache
-GRMustacheTemplate *template = [repository templateForName:@"document" error:NULL];
+GRMustacheTemplate *template = [repository templateNamed:@"document" error:NULL];
 ```
  
 You may also have the repository parse a template string. Only partials would then be loaded from the repository:
@@ -95,10 +78,10 @@ GRMustacheTemplate *template = [repository templateFromString:@"...{{> partials/
 ```
 
 
-The rendering is done as usual (see [templates.md](templates.md)):
+The rendering is done as usual (see the [Templates Guide](templates.md)):
 
 ```objc
-NSString *rendering = [template renderObject:...];
+NSString *rendering = [template renderObject:... error:...];
 ```
 
 ### Absolute paths to partial templates
@@ -133,15 +116,9 @@ GRMustacheTemplateRepository *repository = [GRMustacheTemplateRepository templat
 
 // Loads path/to/templates/a.mustache, and provides a root for
 // absolute partial tags: 
-GRMustacheTemplate aTemplate = [repository templateForName:@"a"];
-NSString *rendering = [aTemplate renderObject:...];
+GRMustacheTemplate aTemplate = [repository templateNamed:@"a"];
+NSString *rendering = [aTemplate renderObject:... error:...];
 ```
-
-### Absolute paths to partials and helpers
-
-When you implement a variable or section tag helper that uses a partial, you want it to always include the same partial, regardless of the hierarchical position of the templates that use it. Again, absolute paths to partials are the solution.
-
-See [variable_tag_helpers.md](variable_tag_helpers.md) and [section_tag_helpers.md](section_tag_helpers.md) for more information about tag helpers.
 
 
 Loading templates and partials from a dictionary of template strings
@@ -152,9 +129,9 @@ When your template and partial strings are stored in memory, store them in a dic
 ```objc
 @interface GRMustacheTemplateRepository : NSObject
 
-// _partialsDictionary_ is a dictionary whose keys are partial names, and values
-// template strings.
-+ (id)templateRepositoryWithPartialsDictionary:(NSDictionary *)partialsDictionary;
+// _templates_ is a dictionary whose keys are partial names, and
+// values template strings.
++ (id)templateRepositoryWithDictionary:(NSDictionary *)templates;
 
 @end
 ```
@@ -163,14 +140,14 @@ Now we may instanciate one:
     
 ```objc
 NSDictionary *templates = @{ @"partial": @"It works!" }
-GRMustacheTemplateRepository *repository = [GRMustacheTemplateRepository templateRepositoryWithPartialsDictionary:templates];
+GRMustacheTemplateRepository *repository = [GRMustacheTemplateRepository templateRepositoryWithDictionary:templates];
 ```
 
 Then load templates from it:
 
 ```objc
 GRMustacheTemplate *template1 = [repository templateFromString:@"{{>partial}}" error:NULL];
-GRMustacheTemplate *template2 = [repository templateForName:@"partial" error:NULL];
+GRMustacheTemplate *template2 = [repository templateNamed:@"partial" error:NULL];
 ```
 
 And finally render:
@@ -273,4 +250,4 @@ GRMustacheTemplateRepository *repository = [GRMustacheTemplateRepository templat
 repository.dataSource = mars;
 ```
 
-[up](introduction.md), [next](runtime.md)
+[up](../../../../GRMustache#documentation), [next](runtime.md)

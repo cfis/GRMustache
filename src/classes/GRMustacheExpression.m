@@ -35,8 +35,9 @@
     [super dealloc];
 }
 
-- (id)evaluateInRuntime:(GRMustacheRuntime *)runtime asFilterValue:(BOOL)filterValue
+- (id)valueWithContext:(GRMustacheContext *)context protected:(BOOL *)protected
 {
+    NSAssert(NO, @"Subclasses must override");
     return nil;
 }
 

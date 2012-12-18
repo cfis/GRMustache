@@ -21,243 +21,156 @@
 // THE SOFTWARE.
 
 #import "GRMustacheTemplate_private.h"
-#import "GRMustacheRuntime_private.h"
+#import "GRMustacheContext_private.h"
 #import "GRMustacheTemplateRepository_private.h"
+#import "GRMustacheSectionTag_private.h"
+#import "GRMustacheRendering.h"
 
-@interface GRMustacheTemplate()
-- (id)initWithInnerElements:(NSArray *)innerElements;
+@interface GRMustacheTemplate()<GRMustacheRendering>
 @end
 
 @implementation GRMustacheTemplate
-@synthesize innerElements=_innerElements;
-@synthesize delegate=_delegate;
+@synthesize components=_components;
 
-+ (id)templateFromString:(NSString *)templateString error:(NSError **)outError
++ (id)templateFromString:(NSString *)templateString error:(NSError **)error
 {
     GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBundle:[NSBundle mainBundle]];
-    return [templateRepository templateFromString:templateString error:outError];
+    return [templateRepository templateFromString:templateString error:error];
 }
 
-+ (id)templateFromContentsOfURL:(NSURL *)URL error:(NSError **)outError
++ (id)templateFromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)error
 {
-    NSURL *baseURL = [URL URLByDeletingLastPathComponent];
-    NSString *templateExtension = [URL pathExtension];
-    NSString *templateName = [[URL lastPathComponent] stringByDeletingPathExtension];
-    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBaseURL:baseURL templateExtension:templateExtension];
-    return [templateRepository templateForName:templateName error:outError];
+    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBundle:bundle];
+    return [templateRepository templateNamed:name error:error];
 }
 
-+ (id)templateFromContentsOfFile:(NSString *)path error:(NSError **)outError
++ (id)templateFromContentsOfFile:(NSString *)path error:(NSError **)error
 {
     NSString *directoryPath = [path stringByDeletingLastPathComponent];
     NSString *templateExtension = [path pathExtension];
     NSString *templateName = [[path lastPathComponent] stringByDeletingPathExtension];
-    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithDirectory:directoryPath templateExtension:templateExtension];
-    return [templateRepository templateForName:templateName error:outError];
+    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithDirectory:directoryPath templateExtension:templateExtension encoding:NSUTF8StringEncoding];
+    return [templateRepository templateNamed:templateName error:error];
 }
 
-+ (id)templateFromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)outError
++ (id)templateFromContentsOfURL:(NSURL *)URL error:(NSError **)error
 {
-    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBundle:bundle];
-    return [templateRepository templateForName:name error:outError];
+    NSURL *baseURL = [URL URLByDeletingLastPathComponent];
+    NSString *templateExtension = [URL pathExtension];
+    NSString *templateName = [[URL lastPathComponent] stringByDeletingPathExtension];
+    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBaseURL:baseURL templateExtension:templateExtension encoding:NSUTF8StringEncoding];
+    return [templateRepository templateNamed:templateName error:error];
 }
 
-+ (id)templateFromResource:(NSString *)name withExtension:(NSString *)ext bundle:(NSBundle *)bundle error:(NSError **)outError
++ (NSString *)renderObject:(id)object fromString:(NSString *)templateString error:(NSError **)error
 {
-    GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBundle:bundle templateExtension:ext];
-    return [templateRepository templateForName:name error:outError];
+    GRMustacheTemplate *template = [GRMustacheTemplate templateFromString:templateString error:error];
+    return [template renderObject:object error:error];
 }
 
-+ (id)templateWithInnerElements:(NSArray *)innerElements
++ (NSString *)renderObject:(id)object fromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)error
 {
-    return [[[self alloc] initWithInnerElements:innerElements] autorelease];
+    GRMustacheTemplate *template = [GRMustacheTemplate templateFromResource:name bundle:bundle error:error];
+    return [template renderObject:object error:error];
 }
 
 - (void)dealloc
 {
-    [_innerElements release];
+    [_components release];
+    [_baseContext release];
     [super dealloc];
 }
 
-+ (NSString *)renderObject:(id)object fromString:(NSString *)templateString error:(NSError **)outError
+- (GRMustacheContext *)baseContext
 {
-    return [self renderObject:object withFilters:nil fromString:templateString error:outError];
-}
-
-+ (NSString *)renderObject:(id)object withFilters:(id)filters fromString:(NSString *)templateString error:(NSError **)outError
-{
-    NSString *rendering;
-    GRMustacheTemplate *template;
-    @autoreleasepool {
-        template = [GRMustacheTemplate templateFromString:templateString error:outError];
-        rendering = [[template renderObject:object withFilters:filters] retain];
-        // make sure outError is not released by autoreleasepool
-        if (!template && outError != NULL) [*outError retain];
+    if (_baseContext == nil) {
+        _baseContext = [[GRMustacheContext context] retain];
     }
-    if (!template && outError != NULL) [*outError autorelease];
-    return [rendering autorelease];
+    return [[_baseContext retain] autorelease];
 }
 
-+ (NSString *)renderObject:(id)object fromContentsOfURL:(NSURL *)URL error:(NSError **)outError
+- (void)setBaseContext:(GRMustacheContext *)baseContext
 {
-    return [self renderObject:object withFilters:nil fromContentsOfURL:URL error:outError];
-}
-
-+ (NSString *)renderObject:(id)object withFilters:(id)filters fromContentsOfURL:(NSURL *)URL error:(NSError **)outError
-{
-    NSString *rendering;
-    GRMustacheTemplate *template;
-    @autoreleasepool {
-        template = [GRMustacheTemplate templateFromContentsOfURL:URL error:outError];
-        rendering = [[template renderObject:object withFilters:filters] retain];
-        // make sure outError is not released by autoreleasepool
-        if (!template && outError != NULL) [*outError retain];
+    if (_baseContext != baseContext) {
+        [_baseContext release];
+        _baseContext = [baseContext retain];
     }
-    if (!template && outError != NULL) [*outError autorelease];
-    return [rendering autorelease];
 }
 
-+ (NSString *)renderObject:(id)object fromContentsOfFile:(NSString *)path error:(NSError **)outError
+- (NSString *)renderObject:(id)object error:(NSError **)error
 {
-    return [self renderObject:object withFilters:nil fromContentsOfFile:path error:outError];
+    GRMustacheContext *context = [self.baseContext contextByAddingObject:object];
+    return [self renderContentWithContext:context HTMLSafe:NULL error:error];
 }
 
-+ (NSString *)renderObject:(id)object withFilters:(id)filters fromContentsOfFile:(NSString *)path error:(NSError **)outError
+- (NSString *)renderObjectsFromArray:(NSArray *)objects error:(NSError **)error
 {
-    NSString *rendering;
-    GRMustacheTemplate *template;
-    @autoreleasepool {
-        template = [GRMustacheTemplate templateFromContentsOfFile:path error:outError];
-        rendering = [[template renderObject:object withFilters:filters] retain];
-        // make sure outError is not released by autoreleasepool
-        if (!template && outError != NULL) [*outError retain];
+    GRMustacheContext *context = self.baseContext;
+    for (id object in objects) {
+        context = [context contextByAddingObject:object];
     }
-    if (!template && outError != NULL) [*outError autorelease];
-    return [rendering autorelease];
+    return [self renderContentWithContext:context HTMLSafe:NULL error:error];
 }
 
-+ (NSString *)renderObject:(id)object fromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)outError
-{
-    return [self renderObject:object withFilters:nil fromResource:name bundle:bundle error:outError];
-}
-
-+ (NSString *)renderObject:(id)object withFilters:(id)filters fromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)outError
-{
-    NSString *rendering;
-    GRMustacheTemplate *template;
-    @autoreleasepool {
-        template = [GRMustacheTemplate templateFromResource:name bundle:bundle error:outError];
-        rendering = [[template renderObject:object withFilters:filters] retain];
-        // make sure outError is not released by autoreleasepool
-        if (!template && outError != NULL) [*outError retain];
-    }
-    if (!template && outError != NULL) [*outError autorelease];
-    return [rendering autorelease];
-}
-
-+ (NSString *)renderObject:(id)object fromResource:(NSString *)name withExtension:(NSString *)ext bundle:(NSBundle *)bundle error:(NSError **)outError
-{
-    return [self renderObject:object withFilters:nil fromResource:name withExtension:ext bundle:bundle error:outError];
-}
-
-+ (NSString *)renderObject:(id)object withFilters:(id)filters fromResource:(NSString *)name withExtension:(NSString *)ext bundle:(NSBundle *)bundle error:(NSError **)outError
-{
-    NSString *rendering;
-    GRMustacheTemplate *template;
-    @autoreleasepool {
-        template = [GRMustacheTemplate templateFromResource:name withExtension:ext bundle:bundle error:outError];
-        rendering = [[template renderObject:object withFilters:filters] retain];
-        // make sure outError is not released by autoreleasepool
-        if (!template && outError != NULL) [*outError retain];
-    }
-    if (!template && outError != NULL) [*outError autorelease];
-    return [rendering autorelease];
-}
-
-- (NSString *)render
-{
-    return [self renderObject:nil];
-}
-
-- (NSString *)renderObject:(id)object
-{
-    return [self renderObject:object withFilters:nil];
-}
-
-- (NSString *)renderObject:(id)object withFilters:(id)filters
+- (NSString *)renderContentWithContext:(GRMustacheContext *)context HTMLSafe:(BOOL *)HTMLSafe error:(NSError **)error
 {
     NSMutableString *buffer = [NSMutableString string];
-    GRMustacheRuntime *runtime = [GRMustacheRuntime runtimeWithTemplate:self contextObject:object];
-    runtime = [runtime runtimeByAddingFilterObject:filters];
-    [self renderInBuffer:buffer withRuntime:runtime];
-    return buffer;
-}
-
-- (NSString *)renderObjectsInArray:(NSArray *)objects
-{
-    return [self renderObjectsFromArray:objects withFilters:nil];
-}
-
-- (NSString *)renderObjectsFromArray:(NSArray *)objects
-{
-    return [self renderObjectsFromArray:objects withFilters:nil];
-}
-
-- (NSString *)renderObjectsInArray:(NSArray *)objects withFilters:(id)filters
-{
-    return [self renderObjectsFromArray:objects withFilters:filters];
-}
-
-- (NSString *)renderObjectsFromArray:(NSArray *)objects withFilters:(id)filters
-{
-    NSMutableString *buffer = [NSMutableString string];
-    GRMustacheRuntime *runtime = [GRMustacheRuntime runtimeWithTemplate:self contextObjects:objects];
-    runtime = [runtime runtimeByAddingFilterObject:filters];
-    [self renderInBuffer:buffer withRuntime:runtime];
+    if (![self renderInBuffer:buffer withContext:context error:error]) {
+        return nil;
+    }
+    if (HTMLSafe) {
+        *HTMLSafe = YES;
+    }
     return buffer;
 }
 
 
-#pragma mark <GRMustacheRenderingElement>
+#pragma mark - <GRMustacheTemplateComponent>
 
-- (void)renderInBuffer:(NSMutableString *)buffer withRuntime:(GRMustacheRuntime *)runtime
+- (BOOL)renderInBuffer:(NSMutableString *)buffer withContext:(GRMustacheContext *)context error:(NSError **)error
 {
-    if ([_delegate respondsToSelector:@selector(templateWillRender:)]) {
-        [_delegate templateWillRender:self];
+    for (id<GRMustacheTemplateComponent> component in _components) {
+        // component may be overriden by a GRMustacheTemplateOverride: resolve it.
+        component = [context resolveTemplateComponent:component];
+        
+        // render
+        if (![component renderInBuffer:buffer withContext:context error:error]) {
+            return NO;
+        }
     }
     
-    for (id<GRMustacheRenderingElement> element in _innerElements) {
-        element = [runtime resolveRenderingElement:element];
-        [element renderInBuffer:buffer withRuntime:runtime];
-    }
-    
-    if ([_delegate respondsToSelector:@selector(templateDidRender:)]) {
-        [_delegate templateDidRender:self];
-    }
+    return YES;
 }
 
-- (BOOL)isOverridable
+- (id<GRMustacheTemplateComponent>)resolveTemplateComponent:(id<GRMustacheTemplateComponent>)component
 {
-    return NO;
+    // look for the last overriding component in inner components.
+    //
+    // This allows a partial do define an overriding section:
+    //
+    //    {
+    //        data: { },
+    //        expected: "partial1",
+    //        name: "Partials in overridable partials can override overridable sections",
+    //        template: "{{<partial2}}{{>partial1}}{{/partial2}}"
+    //        partials: {
+    //            partial1: "{{$overridable}}partial1{{/overridable}}";
+    //            partial2: "{{$overridable}}ignored{{/overridable}}";
+    //        },
+    //    }
+    for (id<GRMustacheTemplateComponent> innerComponent in _components) {
+        component = [innerComponent resolveTemplateComponent:component];
+    }
+    return component;
 }
 
-- (id<GRMustacheRenderingElement>)resolveOverridableRenderingElement:(id<GRMustacheRenderingElement>)element
-{
-    for (id<GRMustacheRenderingElement> innerElement in _innerElements) {
-        element = [innerElement resolveOverridableRenderingElement:element];
-    }
-    return element;
-}
 
-#pragma mark Private
+#pragma mark - <GRMustacheRendering>
 
-- (id)initWithInnerElements:(NSArray *)innerElements
+// Allows template to render as "dynamic partials"
+- (NSString *)renderForMustacheTag:(GRMustacheTag *)tag context:(GRMustacheContext *)context HTMLSafe:(BOOL *)HTMLSafe error:(NSError **)error
 {
-    self = [self init];
-    if (self) {
-        self.innerElements = innerElements;
-    }
-    return self;
+    return [self renderContentWithContext:context HTMLSafe:HTMLSafe error:error];
 }
 
 @end
