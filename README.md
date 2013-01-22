@@ -3,25 +3,48 @@ GRMustache
 
 GRMustache is a flexible and production-ready implementation of [Mustache](http://mustache.github.com/) templates for MacOS Cocoa and iOS.
 
-**November 28, 2012: GRMustache 6.1.3 is out.** [Release notes](GRMustache/blob/master/RELEASE_NOTES.md)
+GRMustache targets iOS down to version 4.3, MacOS down to 10.6 Snow Leopard (with or without garbage collection), and only depends on the Foundation framework.
+
+**January 12, 2013: GRMustache 6.1.4 is out.** [Release notes](GRMustache/blob/master/RELEASE_NOTES.md)
 
 Don't miss a single release: follow [@GRMustache](http://twitter.com/GRMustache) on Twitter.
 
 How To
 ------
 
-### 1. Download and add to your Xcode project
+### 1. Setup your Xcode project
 
-    $ git clone https://github.com/groue/GRMustache.git
+**Option 1: CocoaPods**
+
+Dear [CocoaPods](https://github.com/CocoaPods/CocoaPods) users, append `pod 'GRMustache', '~> 6.1'` to your Podfile.
+
+**Option 2: Static Library**
+
+The distribution includes pre-built static libraries:
+
+Clone the repository with the `git clone https://github.com/groue/GRMustache.git` command.
 
 - For MacOS development, add `include/GRMustache.h` and `lib/libGRMustache6-MacOS.a` to your project.
 - For iOS development, add `include/GRMustache.h` and `lib/libGRMustache6-iOS.a` to your project.
 
-Alternatively, you may use [CocoaPods](https://github.com/CocoaPods/CocoaPods): append `pod 'GRMustache', '~> 6.1'` to your Podfile.
+If you have GRMustache files *copied* in your project, you'll need to copy all header files of the `include` directory, not only `GRMustache.h`.
 
-GRMustache targets MacOS down to 10.6 Snow Leopard, iOS down to version 4.3, and only depends on the Foundation framework.
+The armv6 slice is not included. In order to target this architecture, you have to compile GRMustache yourself (see below), or to use CocoaPods (see above).
 
-**armv6 architecture**: The last GRMustache static library that embeds the armv6 slice is [GRMustache 5.0.1](https://github.com/groue/GRMustache/tree/v5.0.1). You now have to compile GRMustache yourself, or to use [CocoaPods](https://github.com/CocoaPods/CocoaPods).
+**Option 3: Compiling the raw sources**
+
+You may also embed the raw GRMustache sources in your project:
+
+    $ git clone https://github.com/groue/GRMustache.git
+    $ cd GRMustache
+    $ git checkout v6.1.4  # checkout the latest stable release
+    $ git submodule update --init src/vendor/groue/jrswizzle
+
+Add all files of `src/classes` plus `src/vendor/groue/jrswizzle/JRSwizzle.*` to your project.
+
+If your project uses ARC, flag the source files with the `-fno-objc-arc` compiler flag ([how to](http://stackoverflow.com/questions/6646052/how-can-i-disable-arc-for-a-single-file-in-a-project)).
+
+In your own sources, avoid importing header files whose name ends with `_private.h`: those are private headers that may change, without notice, in future releases.
 
 ### 2. Start rendering templates
 
@@ -62,9 +85,10 @@ Loading templates:
 
 Rendering templates:
 
-- [Runtime](GRMustache/blob/master/Guides/runtime.md): how to provide data to templates
+- [Runtime](GRMustache/blob/master/Guides/runtime.md): how GRMustache renders your data
+- [Feeding The Templates](GRMustache/blob/master/Guides/runtime_patterns.md): how to provide data to templates
 
-Advanced Mustache:
+Advanced GRMustache:
 
 - [Filters](GRMustache/blob/master/Guides/filters.md): how to process data before it is rendered with "filters".
 - [Tag Delegates](GRMustache/blob/master/Guides/delegate.md): how to observe and alter template rendering.
@@ -139,6 +163,10 @@ What other people say
 
 > Thank fucking christ for decent iOS developers who ship .lib files in their Github repos. #GRMustache
 
+[@SebastienPeek](https://twitter.com/sebastienpeek/status/290700413152423936)
+
+> @issya should see the HTML template I built, pretty wicked. GRMustache is the best.
+
 
 Popular projects & apps using GRMustache
 ----------------------------------------
@@ -148,8 +176,9 @@ Popular projects & apps using GRMustache
 * [CarterA/Tribo](https://github.com/CarterA/Tribo): Extremely fast static site generator written in Objective-C
 * [AutoLib](http://itunes.com/apps/autolib) uses GRMustache and [spullara/mustache.java](https://github.com/spullara/mustache.java) for rendering an identical set of Mustache templates on iOS and Android.
 * [CinéObs](http://itunes.com/apps/cineobs) uses GRMustache for RSS feeds rendering
-* [Fotopedia](http://itunes.com/apps/fotonautsinc)
-* [FunGolf GPS](http://itunes.com/apps/fungolf)
+* [Fotopedia](http://itunes.com/apps/fotonautsinc), the first collaborative photo encyclopedia
+* [FunGolf GPS](http://itunes.com/apps/fungolf), a golf app with 3D maps
+* [KosmicTask](http://www.mugginsoft.com/kosmictask), an integrated scripting environment for OS X that supports more than 20 scripting languages.
 
 
 Contribution wish-list

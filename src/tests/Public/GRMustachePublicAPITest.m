@@ -21,7 +21,6 @@
 // THE SOFTWARE.
 
 #import "GRMustachePublicAPITest.h"
-#import "JSONKit.h"
 
 static struct {
     NSString *tests;
@@ -60,7 +59,7 @@ static struct {
     STAssertNotNil(testSuiteData, @"Could not load test suite at %@", path);
     if (!testSuiteData) return;
     
-    NSDictionary *testSuite = [testSuiteData objectFromJSONDataWithParseOptions:JKParseOptionComments error:&error];
+    NSDictionary *testSuite = [self JSONObjectWithData:testSuiteData error:&error];
     STAssertNotNil(testSuite, @"Could not load test suite at %@: %@", path, error);
     if (!testSuite) return;
     
