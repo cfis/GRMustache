@@ -1549,6 +1549,7 @@
 				OTHER_CFLAGS = "-DTARGET_OS_IPHONE";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUBLIC_HEADERS_FOLDER_PATH = include/GRMustache;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 			};
@@ -1568,6 +1569,7 @@
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUBLIC_HEADERS_FOLDER_PATH = include/GRMustache;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				VALIDATE_PRODUCT = YES;
