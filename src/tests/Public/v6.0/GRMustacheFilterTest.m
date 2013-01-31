@@ -1,6 +1,6 @@
 // The MIT License
 //
-// Copyright (c) 2012 Gwendal Roué
+// Copyright (c) 2013 Gwendal Roué
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -132,31 +132,6 @@
     NSError *error;
     STAssertNil([GRMustacheTemplate templateFromString:templateString error:&error], nil);
     STAssertEquals(error.code, (NSInteger)GRMustacheErrorCodeParseError, nil);
-}
-
-- (void)testMissingFilterException
-{
-    id data = @{
-        @"name": @"Name",
-        @"replace": [GRMustacheFilter filterWithBlock:^id(id value) {
-            return @"replace";
-        }],
-    };
-
-    STAssertThrowsSpecificNamed([[GRMustacheTemplate templateFromString:@"<{{missing(missing)}}>" error:NULL] renderObject:data error:NULL], NSException, GRMustacheRenderingException, nil);
-    STAssertThrowsSpecificNamed([[GRMustacheTemplate templateFromString:@"<{{missing(name)}}>" error:NULL] renderObject:data error:NULL], NSException, GRMustacheRenderingException, nil);
-    STAssertThrowsSpecificNamed([[GRMustacheTemplate templateFromString:@"<{{replace(missing(name))}}>" error:NULL] renderObject:data error:NULL], NSException, GRMustacheRenderingException, nil);
-    STAssertThrowsSpecificNamed([[GRMustacheTemplate templateFromString:@"<{{missing(replace(name))}}>" error:NULL] renderObject:data error:NULL], NSException, GRMustacheRenderingException, nil);
-}
-
-- (void)testNotAFilterException
-{
-    id data = @{
-        @"name": @"Name",
-        @"filter": @"filter",
-    };
-    
-    STAssertThrowsSpecificNamed([[GRMustacheTemplate templateFromString:@"<{{filter(name)}}>" error:NULL] renderObject:data error:NULL], NSException, GRMustacheRenderingException, nil);
 }
 
 - (void)testFiltersDoNotEnterContextStack

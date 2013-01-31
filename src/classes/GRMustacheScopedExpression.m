@@ -1,6 +1,6 @@
 // The MIT License
 // 
-// Copyright (c) 2012 Gwendal Roué
+// Copyright (c) 2013 Gwendal Roué
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -77,13 +77,20 @@
 
 #pragma mark - GRMustacheExpression
 
-- (id)valueWithContext:(GRMustacheContext *)context protected:(BOOL *)protected
+- (BOOL)hasValue:(id *)value withContext:(GRMustacheContext *)context protected:(BOOL *)protected error:(NSError **)error
 {
-    id scopedValue = [_baseExpression valueWithContext:context protected:protected];
+    id scopedValue;
+    if (![_baseExpression hasValue:&scopedValue withContext:context protected:NULL error:error]) {
+        return NO;
+    }
+    
     if (protected != NULL) {
         *protected = NO;
     }
-    return [GRMustacheContext valueForKey:_scopeIdentifier inObject:scopedValue];
+    if (value) {
+        *value = [GRMustacheContext valueForKey:_scopeIdentifier inObject:scopedValue];
+    }
+    return YES;
 }
 
 @end
