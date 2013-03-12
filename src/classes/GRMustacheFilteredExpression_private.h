@@ -40,7 +40,7 @@
  * Returns a filtered expression, given an expression that returns a filter, and
  * an expression that return the filter argument.
  *
- * For instance, the Mustache tag `{{ f(x) }}` contains a filtered expression,
+ * For example, the Mustache tag `{{ f(x) }}` contains a filtered expression,
  * whose filterExpression is a GRMustacheIdentifierExpression (for the
  * identifier `f`), and whose argumentExpression is a
  * GRMustacheIdentifierExpression (for the identifier `x`).
@@ -52,13 +52,13 @@
  *
  * @return A GRMustacheFilteredExpression.
  */
-+ (id)expressionWithFilterExpression:(GRMustacheExpression *)filterExpression argumentExpression:(GRMustacheExpression *)argumentExpression GRMUSTACHE_API_INTERNAL;
++ (instancetype)expressionWithFilterExpression:(GRMustacheExpression *)filterExpression argumentExpression:(GRMustacheExpression *)argumentExpression GRMUSTACHE_API_INTERNAL;
 
 /**
  * Returns a filtered expression, given an expression that returns a filter, and
  * an expression that return the filter argument.
  *
- * For instance, the Mustache tag `{{ f(x) }}` contains a filtered expression,
+ * For example, the Mustache tag `{{ f(x) }}` contains a filtered expression,
  * whose filterExpression is a GRMustacheIdentifierExpression (for the
  * identifier `f`), and whose argumentExpression is a
  * GRMustacheIdentifierExpression (for the identifier `x`).
@@ -71,5 +71,5 @@
  *
  * @return A GRMustacheFilteredExpression.
  */
-+ (id)expressionWithFilterExpression:(GRMustacheExpression *)filterExpression argumentExpression:(GRMustacheExpression *)argumentExpression curry:(BOOL)curry GRMUSTACHE_API_INTERNAL;
++ (instancetype)expressionWithFilterExpression:(GRMustacheExpression *)filterExpression argumentExpression:(GRMustacheExpression *)argumentExpression curry:(BOOL)curry GRMUSTACHE_API_INTERNAL;
 @end

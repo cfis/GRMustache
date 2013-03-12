@@ -1,4 +1,4 @@
-[up](../../../../GRMustache#documentation), [next](runtime.md)
+[up](../../../../GRMustache#documentation), [next](standard_library.md)
 
 HTML vs. Text Templates
 =======================
@@ -11,7 +11,7 @@ HTML templates return HTML: their `{{ name }}` variable tags escape their input.
 
 Text templates return text: their `{{ name }}` and `{{{ name }}}` tags do not escape their input: they have identical rendering.
 
-The `GRMustacheConfiguration` class is your vector to text & HTML templates.
+The [GRMustacheConfiguration](configuration.md) class is your vector to text & HTML templates.
 
 
 Global configuration
@@ -155,4 +155,4 @@ The [Mustache specification](https://github.com/mustache/spec) does not have any
 
 **If your goal is to design templates that remain compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), use {{{ triple }}} mustache tags, and don't mix text with HTML.**
 
-[up](../../../../GRMustache#documentation), [next](runtime.md)
+[up](../../../../GRMustache#documentation), [next](standard_library.md)

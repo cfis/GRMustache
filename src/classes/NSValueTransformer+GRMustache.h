@@ -20,10 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
+#import "GRMustacheAvailabilityMacros.h"
+#import "GRMustacheFilter.h"
 
-@interface GRAppDelegate : NSObject <NSApplicationDelegate>
-
-@property (assign) IBOutlet NSWindow *window;
-
+/**
+ * A category on NSValueTransformer that allows them to be directly used as
+ * filters in GRMustache templates.
+ *
+ * @since v6.4
+ */
+@interface NSValueTransformer (GRMustache)<GRMustacheFilter>
 @end

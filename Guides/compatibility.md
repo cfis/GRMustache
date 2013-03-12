@@ -1,4 +1,4 @@
-[up](../../../../GRMustache#documentation), [next](../../../tree/master/Guides/sample_code)
+[up](../../../../GRMustache#documentation), [next](runtime_patterns.md)
 
 Compatibility With Other Mustache Engines
 =========================================
@@ -15,6 +15,7 @@ This guide is here to tell you where the border line is, topic by topic:
 
 - Syntax extensions
 - Sections and inverted sections
+- Standard Library
 - Text templates
 - File system hierarchy of template and partials
 - Dynamic partials
@@ -61,6 +62,12 @@ That's unfortunate. Anyway, for the record, here is a reminder of all false valu
 - `NSNumber` instances whose `boolValue` method returns `NO`
 - empty strings `@""`
 - empty enumerables.
+
+
+Standard Library
+----------------
+
+The Mustache specification does not provide any service like the [GRMustache standard library](standard_library.md).
 
 
 Text templates
@@ -144,9 +151,9 @@ Tag delegates
 
 GRMustache's [tag delegates](delegate.md), unknown to the Mustache specification, let you observe, and possibly alter the rendering of the Mustache tags.
 
-Tag delegates may be used for formatting values in a spec-compliant way (see sample code in [Tag Delegates Guide](delegate.md)). They may also be used for putting Mustache on steroids, as in the [Localization Sample Code](sample_code/localization.md).
+Tag delegates may be used for formatting values in a spec-compliant way (see sample code in [Tag Delegates Guide](delegate.md)). They may also at the core of many items of the [standard library](standard_library.md).
 
-As such, they are an ambiguous tool. You will have to know when you cross the line.
+They are an ambiguous tool. You will have to know when you cross the line.
 
 
-[up](../../../../GRMustache#documentation), [next](../../../tree/master/Guides/sample_code)
+[up](../../../../GRMustache#documentation), [next](runtime_patterns.md)

@@ -27,7 +27,7 @@
  * A GRMustacheTextComponent is a template component that renders raw template
  * text.
  *
- * For instance, the template string "hello {{name}}!" would give two
+ * For example, the template string "hello {{name}}!" would give two
  * GRMustacheTextComponent instances:
  *
  * - a GRMustacheTextComponent that renders "hello ".
@@ -46,7 +46,7 @@
  * @param string  The string that should be rendered.
  * @return a GRMustacheTextComponent
  */
-+ (id)textComponentWithString:(NSString *)string GRMUSTACHE_API_INTERNAL;
++ (instancetype)textComponentWithString:(NSString *)string GRMUSTACHE_API_INTERNAL;
 
 @end
 

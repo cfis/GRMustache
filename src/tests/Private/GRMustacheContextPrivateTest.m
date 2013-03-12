@@ -24,7 +24,7 @@
 #import "GRMustacheContext_private.h"
 #import "GRMustacheTemplate_private.h"
 
-@interface GRMustacheContextTest : GRMustachePrivateAPITest
+@interface GRMustacheContextPrivateTest : GRMustachePrivateAPITest
 @end
 
 
@@ -39,13 +39,13 @@
 @implementation GRKVCRecorder
 @synthesize lastAccessedKey;
 @synthesize keys;
-+ (id)recorderWithRecognizedKeys:(NSArray *)keys
++ (instancetype)recorderWithRecognizedKeys:(NSArray *)keys
 {
     GRKVCRecorder *recorder = [[[self alloc] init] autorelease];
     recorder.keys = keys;
     return recorder;
 }
-+ (id)recorderWithRecognizedKey:(NSString *)key
++ (instancetype)recorderWithRecognizedKey:(NSString *)key
 {
     GRKVCRecorder *recorder = [[[self alloc] init] autorelease];
     recorder.keys = [NSArray arrayWithObject:key];
@@ -118,12 +118,12 @@
 
 @end
 
-@implementation GRMustacheContextTest
+@implementation GRMustacheContextPrivateTest
 
 - (void)testOneDepthRuntimeForwardsValueForKeyToItsObject
 {
     GRKVCRecorder *recorder = [GRKVCRecorder recorderWithRecognizedKey:@"foo"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:recorder];
     [context contextValueForKey:@"foo" protected:NULL];
     STAssertEqualObjects(recorder.lastAccessedKey, @"foo", nil);
@@ -133,7 +133,7 @@
 {
     GRKVCRecorder *rootRecorder = [GRKVCRecorder recorderWithRecognizedKey:@"root"];
     GRKVCRecorder *topRecorder = [GRKVCRecorder recorderWithRecognizedKey:@"top"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:rootRecorder];
     context = [context contextByAddingObject:topRecorder];
     STAssertEqualObjects([context contextValueForKey:@"top" protected:NULL], @"top", nil);
@@ -145,7 +145,7 @@
 {
     GRKVCRecorder *rootRecorder = [GRKVCRecorder recorderWithRecognizedKey:@"root"];
     GRKVCRecorder *topRecorder = [GRKVCRecorder recorderWithRecognizedKey:@"top"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:rootRecorder];
     context = [context contextByAddingObject:topRecorder];
     STAssertEqualObjects([context contextValueForKey:@"root" protected:NULL], @"root", nil);
@@ -157,7 +157,7 @@
 {
     GRKVCRecorder *rootRecorder = [GRKVCRecorder recorderWithRecognizedKey:@"root"];
     GRKVCRecorder *topRecorder = [GRKVCRecorder recorderWithRecognizedKey:@"top"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:rootRecorder];
     context = [context contextByAddingObject:topRecorder];
     STAssertNil([context contextValueForKey:@"foo" protected:NULL], nil);
@@ -168,7 +168,7 @@
 - (void)testNilDoesNotStopsExploration
 {
     NSDictionary *dictionary = [NSDictionary dictionaryWithObject:@"foo" forKey:@"key"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:dictionary];
     dictionary = [NSDictionary dictionary];
     context = [context contextByAddingObject:dictionary];
@@ -178,7 +178,7 @@
 - (void)testNSNullDoesStopExploration
 {
     NSDictionary *dictionary = [NSDictionary dictionaryWithObject:@"foo" forKey:@"key"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:dictionary];
     dictionary = [NSDictionary dictionaryWithObject:[NSNull null] forKey:@"key"];
     context = [context contextByAddingObject:dictionary];
@@ -188,7 +188,7 @@
 - (void)testNSNumberWithBoolNODoesStopExploration
 {
     NSDictionary *dictionary = [NSDictionary dictionaryWithObject:@"foo" forKey:@"key"];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:dictionary];
     dictionary = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:NO] forKey:@"key"];
     context = [context contextByAddingObject:dictionary];
@@ -220,7 +220,7 @@
 - (void)testRuntimeRethrowsNonNSUndefinedKeyException
 {
     ThrowingObject *throwingObject = [[[ThrowingObject alloc] init] autorelease];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:throwingObject];
     STAssertThrows([context contextValueForKey:@"NonNSUndefinedKeyException" protected:NULL], nil);
 }
@@ -229,7 +229,7 @@
 {
     // This test makes sure users can implement proxy objects
     ThrowingObject *throwingObject = [[[ThrowingObject alloc] init] autorelease];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:throwingObject];
     STAssertNoThrow([context contextValueForKey:@"NonSelfNSUndefinedKeyException" protected:NULL], nil);
 }
@@ -237,14 +237,14 @@
 - (void)testRuntimeSwallowsSelfNSUndefinedKeyException
 {
     ThrowingObject *throwingObject = [[[ThrowingObject alloc] init] autorelease];
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingObject:throwingObject];
     STAssertNoThrow([context contextValueForKey:@"SelfNSUndefinedKeyException" protected:NULL], nil);
 }
 
 - (void)testContextByAddingProtectedObject
 {
-    GRMustacheContext *context = [GRMustacheContext context];
+    GRMustacheContext *context = [[[GRMustacheContext alloc] init] autorelease];
     context = [context contextByAddingProtectedObject:@{ @"safe": @"important" }];
     STAssertEqualObjects([context contextValueForKey:@"safe" protected:NULL], @"important", @"");
     context = [context contextByAddingObject:@{ @"safe": @"hack", @"fragile": @"A" }];

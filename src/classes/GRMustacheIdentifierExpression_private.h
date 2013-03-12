@@ -36,12 +36,12 @@
 /**
  * Returns an identifier expression, given an identifier.
  *
- * For instance, the Mustache tag `{{ name }}` contains an identifier
+ * For example, the Mustache tag `{{ name }}` contains an identifier
  * expression, whose identifier is `name`.
  *
  * @param identifier  An identifier
  *
  * @return A GRMustacheIdentifierExpression.
  */
-+ (id)expressionWithIdentifier:(NSString *)identifier GRMUSTACHE_API_INTERNAL;
++ (instancetype)expressionWithIdentifier:(NSString *)identifier GRMUSTACHE_API_INTERNAL;
 @end

@@ -34,10 +34,10 @@
 /**
  * Returns an "implicit iterator" expression.
  *
- * For instance, the Mustache tag `{{ . }}` contains an implicit iterator
+ * For example, the Mustache tag `{{ . }}` contains an implicit iterator
  * expression.
  *
  * @return A GRMustacheImplicitIteratorExpression.
  */
-+ (id)expression GRMUSTACHE_API_INTERNAL;
++ (instancetype)expression GRMUSTACHE_API_INTERNAL;
 @end

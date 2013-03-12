@@ -20,17 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import "GRMustacheFilterLibrary_private.h"
-#import "GRMustacheFilter_private.h"
+#import "GRMustacheStandardLibrary_private.h"
 
 
 // =============================================================================
-#pragma mark - Private concrete class GRMustacheCapitalizedFilter
-
-@interface GRMustacheCapitalizedFilter: NSObject<GRMustacheFilter>
-@end
+#pragma mark - GRMustacheCapitalizedFilter
 
 @implementation GRMustacheCapitalizedFilter
+
+#pragma mark <GRMustacheFilter>
 
 - (id)transformedValue:(id)object
 {
@@ -41,12 +39,11 @@
 
 
 // =============================================================================
-#pragma mark - Private concrete class GRMustacheLowercaseFilter
-
-@interface GRMustacheLowercaseFilter: NSObject<GRMustacheFilter>
-@end
+#pragma mark - GRMustacheLowercaseFilter
 
 @implementation GRMustacheLowercaseFilter
+
+#pragma mark <GRMustacheFilter>
 
 - (id)transformedValue:(id)object
 {
@@ -57,12 +54,11 @@
 
 
 // =============================================================================
-#pragma mark - Private concrete class GRMustacheUppercaseFilter
-
-@interface GRMustacheUppercaseFilter: NSObject<GRMustacheFilter>
-@end
+#pragma mark - GRMustacheUppercaseFilter
 
 @implementation GRMustacheUppercaseFilter
+
+#pragma mark <GRMustacheFilter>
 
 - (id)transformedValue:(id)object
 {
@@ -73,12 +69,11 @@
 
 
 // =============================================================================
-#pragma mark - Private concrete class GRMustacheBlankFilter
-
-@interface GRMustacheBlankFilter: NSObject<GRMustacheFilter>
-@end
+#pragma mark - GRMustacheBlankFilter
 
 @implementation GRMustacheBlankFilter
+
+#pragma mark <GRMustacheFilter>
 
 - (id)transformedValue:(id)object
 {
@@ -101,12 +96,11 @@
 
 
 // =============================================================================
-#pragma mark - Private concrete class GRMustacheEmptyFilter
-
-@interface GRMustacheEmptyFilter: NSObject<GRMustacheFilter>
-@end
+#pragma mark - GRMustacheEmptyFilter
 
 @implementation GRMustacheEmptyFilter
+
+#pragma mark <GRMustacheFilter>
 
 - (id)transformedValue:(id)object
 {
@@ -123,30 +117,6 @@
     
     NSString *description = [object description];
     return [NSNumber numberWithBool:description.length == 0];
-}
-
-@end
-
-
-// =============================================================================
-#pragma mark - GRMustacheFilterLibrary
-
-@implementation GRMustacheFilterLibrary
-
-+ (id)filterLibrary
-{
-    static NSDictionary *GRMustacheLibrary = nil;
-    if (GRMustacheLibrary == nil) {
-        GRMustacheLibrary = [[NSDictionary dictionaryWithObjectsAndKeys:
-                              [[[GRMustacheCapitalizedFilter alloc] init] autorelease], @"capitalized",
-                              [[[GRMustacheLowercaseFilter alloc] init] autorelease], @"lowercase",
-                              [[[GRMustacheUppercaseFilter alloc] init] autorelease], @"uppercase",
-                              [[[GRMustacheBlankFilter alloc] init] autorelease], @"isBlank",
-                              [[[GRMustacheEmptyFilter alloc] init] autorelease], @"isEmpty",
-                              nil] retain];
-    }
-    
-    return GRMustacheLibrary;
 }
 
 @end

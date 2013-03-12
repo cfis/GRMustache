@@ -28,7 +28,7 @@
  * A GRMustacheVariableTag is a template component that renders variable
  * tags such as `{{name}}` and `{{{name}}}`.
  *
- * For instance, the template string "{{name}} is {{age}} years old." would give
+ * For example, the template string "{{name}} is {{age}} years old." would give
  * two GRMustacheVariableTag instances:
  *
  * - a GRMustacheVariableTag that renders the `name` key in a context.
@@ -56,6 +56,6 @@
  *
  * @see GRMustacheExpression
  */
-+ (id)variableTagWithTemplateRepository:(GRMustacheTemplateRepository *)templateRepository expression:(GRMustacheExpression *)expression contentType:(GRMustacheContentType)contentType escapesHTML:(BOOL)escapesHTML GRMUSTACHE_API_INTERNAL;
++ (instancetype)variableTagWithTemplateRepository:(GRMustacheTemplateRepository *)templateRepository expression:(GRMustacheExpression *)expression contentType:(GRMustacheContentType)contentType escapesHTML:(BOOL)escapesHTML GRMUSTACHE_API_INTERNAL;
 
 @end

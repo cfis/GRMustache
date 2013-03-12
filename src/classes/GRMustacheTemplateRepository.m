@@ -134,42 +134,42 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
 @synthesize dataSource=_dataSource;
 @synthesize configuration=_configuration;
 
-+ (id)templateRepositoryWithBaseURL:(NSURL *)URL
++ (instancetype)templateRepositoryWithBaseURL:(NSURL *)URL
 {
     return [[[GRMustacheTemplateRepositoryBaseURL alloc] initWithBaseURL:URL templateExtension:GRMustacheDefaultExtension encoding:NSUTF8StringEncoding] autorelease];
 }
 
-+ (id)templateRepositoryWithBaseURL:(NSURL *)URL templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
++ (instancetype)templateRepositoryWithBaseURL:(NSURL *)URL templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
 {
     return [[[GRMustacheTemplateRepositoryBaseURL alloc] initWithBaseURL:URL templateExtension:ext encoding:encoding] autorelease];
 }
 
-+ (id)templateRepositoryWithDirectory:(NSString *)path
++ (instancetype)templateRepositoryWithDirectory:(NSString *)path
 {
     return [[[GRMustacheTemplateRepositoryDirectory alloc] initWithDirectory:path templateExtension:GRMustacheDefaultExtension encoding:NSUTF8StringEncoding] autorelease];
 }
 
-+ (id)templateRepositoryWithDirectory:(NSString *)path templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
++ (instancetype)templateRepositoryWithDirectory:(NSString *)path templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
 {
     return [[[GRMustacheTemplateRepositoryDirectory alloc] initWithDirectory:path templateExtension:ext encoding:encoding] autorelease];
 }
 
-+ (id)templateRepositoryWithBundle:(NSBundle *)bundle
++ (instancetype)templateRepositoryWithBundle:(NSBundle *)bundle
 {
     return [[[GRMustacheTemplateRepositoryBundle alloc] initWithBundle:bundle templateExtension:GRMustacheDefaultExtension encoding:NSUTF8StringEncoding] autorelease];
 }
 
-+ (id)templateRepositoryWithBundle:(NSBundle *)bundle templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
++ (instancetype)templateRepositoryWithBundle:(NSBundle *)bundle templateExtension:(NSString *)ext encoding:(NSStringEncoding)encoding
 {
     return [[[GRMustacheTemplateRepositoryBundle alloc] initWithBundle:bundle templateExtension:ext encoding:encoding] autorelease];
 }
 
-+ (id)templateRepositoryWithDictionary:(NSDictionary *)partialsDictionary
++ (instancetype)templateRepositoryWithDictionary:(NSDictionary *)partialsDictionary
 {
     return [[[GRMustacheTemplateRepositoryPartialsDictionary alloc] initWithPartialsDictionary:partialsDictionary] autorelease];
 }
 
-+ (id)templateRepository
++ (instancetype)templateRepository
 {
     return [[[GRMustacheTemplateRepository alloc] init] autorelease];
 }
@@ -206,6 +206,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     GRMustacheTemplate *template = [[[GRMustacheTemplate alloc] init] autorelease];
     template.components = AST.templateComponents;
     template.contentType = AST.contentType;
+    template.baseContext = self.configuration.baseContext;
     return template;
 }
 
@@ -236,7 +237,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
         compiler.templateRepository = self;
         
         // Create a Mustache parser that feeds the compiler
-        GRMustacheParser *parser = [[[GRMustacheParser alloc] init] autorelease];
+        GRMustacheParser *parser = [[[GRMustacheParser alloc] initWithConfiguration:self.configuration] autorelease];
         parser.delegate = compiler;
         
         // Parse and extract template components from the compiler
@@ -322,6 +323,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
         if (AST) {
             template.components = AST.templateComponents;
             template.contentType = AST.contentType;
+            template.baseContext = self.configuration.baseContext;
         } else {
             // forget invalid empty template
             [_templateForTemplateID removeObjectForKey:templateID];

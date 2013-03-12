@@ -32,20 +32,21 @@
 @implementation GRMustacheTemplate
 @synthesize components=_components;
 @synthesize contentType=_contentType;
+@synthesize baseContext=_baseContext;
 
-+ (id)templateFromString:(NSString *)templateString error:(NSError **)error
++ (instancetype)templateFromString:(NSString *)templateString error:(NSError **)error
 {
     GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBundle:[NSBundle mainBundle]];
     return [templateRepository templateFromString:templateString error:error];
 }
 
-+ (id)templateFromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)error
++ (instancetype)templateFromResource:(NSString *)name bundle:(NSBundle *)bundle error:(NSError **)error
 {
     GRMustacheTemplateRepository *templateRepository = [GRMustacheTemplateRepository templateRepositoryWithBundle:bundle];
     return [templateRepository templateNamed:name error:error];
 }
 
-+ (id)templateFromContentsOfFile:(NSString *)path error:(NSError **)error
++ (instancetype)templateFromContentsOfFile:(NSString *)path error:(NSError **)error
 {
     NSString *directoryPath = [path stringByDeletingLastPathComponent];
     NSString *templateExtension = [path pathExtension];
@@ -54,7 +55,7 @@
     return [templateRepository templateNamed:templateName error:error];
 }
 
-+ (id)templateFromContentsOfURL:(NSURL *)URL error:(NSError **)error
++ (instancetype)templateFromContentsOfURL:(NSURL *)URL error:(NSError **)error
 {
     NSURL *baseURL = [URL URLByDeletingLastPathComponent];
     NSString *templateExtension = [URL pathExtension];
@@ -80,22 +81,6 @@
     [_components release];
     [_baseContext release];
     [super dealloc];
-}
-
-- (GRMustacheContext *)baseContext
-{
-    if (_baseContext == nil) {
-        _baseContext = [[GRMustacheContext context] retain];
-    }
-    return [[_baseContext retain] autorelease];
-}
-
-- (void)setBaseContext:(GRMustacheContext *)baseContext
-{
-    if (_baseContext != baseContext) {
-        [_baseContext release];
-        _baseContext = [baseContext retain];
-    }
 }
 
 - (NSString *)renderObject:(id)object error:(NSError **)error
@@ -125,11 +110,31 @@
     return buffer;
 }
 
+- (void)setBaseContext:(GRMustacheContext *)baseContext
+{
+    if (!baseContext) {
+        [NSException raise:NSInvalidArgumentException format:@"Invalid baseContext:nil"];
+        return;
+    }
+    
+    if (_baseContext != baseContext) {
+        [_baseContext release];
+        _baseContext = [baseContext retain];
+    }
+}
+
 
 #pragma mark - <GRMustacheTemplateComponent>
 
 - (BOOL)renderContentType:(GRMustacheContentType)requiredContentType inBuffer:(NSMutableString *)buffer withContext:(GRMustacheContext *)context error:(NSError **)error
 {
+    if (!context) {
+        // With a nil context, the method would return NO without setting the
+        // error argument.
+        [NSException raise:NSInvalidArgumentException format:@"Invalid context:nil"];
+        return NO;
+    }
+    
     NSMutableString *needsEscapingBuffer = nil;
     NSMutableString *renderingBuffer = nil;
     

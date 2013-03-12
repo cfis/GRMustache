@@ -61,7 +61,7 @@ Also: if a section tag `{{# name }}...{{/}}` is provided with an array, its cont
 
 In order to observe the rendering of all tags rendered by a template, you have your tag delegate enter the *base context* of the template.
 
-The base context contains values and tag delegates that are always available for the template rendering. It contains all the ready for use filters of the [filter library](filters.md), for example. Contexts are detailed in the [Rendering Objects](rendering_objects.md) and [Protected Contexts](protected_contexts) Guides.
+The base context contains values and tag delegates that are always available for the template rendering. It contains all the ready for use tools of the [standard library](standard_library.md), for example. Contexts are detailed in the [Rendering Objects](rendering_objects.md) and [Protected Contexts](protected_contexts) Guides.
 
 ```objc
 @interface Document : NSObject<GRMustacheTagDelegate>
@@ -112,6 +112,8 @@ The value returned by the `mustacheTag:willRenderObject:` is the value that will
 
 You can, for instance, provide default rendering for missing values:
 
+### Default value for missing keys
+
 ```objc
 @interface Document : NSObject<GRMustacheTagDelegate>
 - (NSString *)render;
@@ -150,67 +152,16 @@ You can, for instance, provide default rendering for missing values:
 [[Document new] render];
 ```
 
-### Altering the rendering of tags in a section
 
-As stated above, when a section renders an object that conforms to the `GRMustacheTagDelegate` protocol, this object observes the rendering of all tags inside the section.
+### Tag Delegates as Cross-Platform Filters
 
-The [Localization Sample Code](sample_code/localization.md) will give us an example, but let's have fun with numbers, and have Mustache format all numbers in a section attached to a `NSNumberFormatter` instance:
+Tag delegates can alter the rendering of all tags inside the section they are attached to.
 
-```objc
-// Have NSNumberFormatter conform to the GRMustacheTagDelegate protocol,
-// so that a formatter can format all numbers in a section:
-@interface NSNumberFormatter(Document)<GRMustacheTagDelegate>
-@end
+Let's consider the behavior of NSFormatter in GRMustache. They are able to format all variable tags inside a section (check the [NSFormatter Guide](NSFormatter.md)).
 
-@implementation NSNumberFormatter(Document)
+For example, `{{#percent}}x = {{x}}{{/percent}}` renders as `x = 50 %` when `percent` is attached to an NSNumberFormatter. That is because formatters are *tag delegates*.
 
-- (id)mustacheTag:(GRMustacheTag *)tag willRenderObject:(id)object
-{
-    // Format all numbers that happen to be rendered by variable tags such as
-    // `{{ count }}`.
-    //
-    // We avoid messing with sections, since they rely on boolean values of
-    // numbers.
-    
-    if (tag.type == GRMustacheTagTypeVariable && [object isKindOfClass:[NSNumber class]]) {
-        return [self stringFromNumber:object];
-    }
-    return object;
-}
-
-@end
-
-NSString *templateString = @"x = {{x}}\n"
-                           @"{{#percent}}x = {{x}}{{/percent}}\n"
-                           @"{{#decimal}}x = {{x}}{{/decimal}}";
-GRMustacheTemplate *template = [GRMustacheTemplate templateFromString:templateString error:NULL];
-
-NSNumberFormatter *percentFormatter = [NSNumberFormatter new];
-percentFormatter.numberStyle = NSNumberFormatterPercentStyle;
-
-NSNumberFormatter *decimalFormatter = [NSNumberFormatter new];
-decimalFormatter.numberStyle = NSNumberFormatterDecimalStyle;
-
-id data = @{
-    @"x": @(0.5),
-    @"percent": percentFormatter,
-    @"decimal": decimalFormatter
-};
-
-// On a French system:
-// x = 0.5
-// x = 50 %
-// x = 0,5
-NSString *rendering = [template renderObject:data error:NULL];
-```
-
-
-Tag Delegates as Cross-Platform Filters
----------------------------------------
-
-Let's consider again the number formatting example above. We were able to render `{{#percent}}x = {{x}}{{/percent}}` as `x = 50 %`: The tag delegate attached to the `percent` has formatted the number `x` as a percentage.
-
-You could also use [filters](filters.md) in order to format numbers: `x = {{ percent(x) }}` would render just as well.
+We could also use [filters](filters.md) in order to format numbers: `x = {{ percent(x) }}` would render just as well.
 
 However, `{{#percent}}x = {{x}}{{/percent}}` has one advantage over `x = {{ percent(x) }}`: it uses plain Mustache syntax, and is compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations).
 
@@ -222,7 +173,7 @@ With such a common template, it's now a matter of providing different data, depe
     // data for GRMustache
     {
       "x": 0.5,
-      "percent": the_formating_tag_delegate
+      "percent": (some well-configured NSNumberFormatter)
     }
 
     // data for other Mustache implementations
@@ -276,18 +227,13 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
 
 The final rendering is "JOHANNES KEPLER".
 
+
 Compatibility with other Mustache implementations
 -------------------------------------------------
 
 The [Mustache specification](https://github.com/mustache/spec) does not have the concept of "tag delegates".
 
 **As a consequence, if your goal is to design templates that remain compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), use `GRMustacheTagDelegate` with great care.**
-
-
-Sample code
------------
-
-The [Localization Sample Code](sample_code/localization.md) uses tag delegates for localizing portions of a template.
 
 
 [up](../../../../GRMustache#documentation), [next](rendering_objects.md)

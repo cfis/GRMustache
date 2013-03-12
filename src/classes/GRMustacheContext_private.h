@@ -102,10 +102,17 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  */
 + (id)valueForKey:(NSString *)key inObject:(id)object GRMUSTACHE_API_INTERNAL;
 
-/**
- * @return A new GRMustacheContext instance, prefilled with the filter library.
- */
-+ (id)context GRMUSTACHE_API_INTERNAL;
+// Documented in GRMustacheContext.h
++ (instancetype)context GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
++ (instancetype)contextWithObject:(id)object GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
++ (instancetype)contextWithProtectedObject:(id)object GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
++ (instancetype)contextWithTagDelegate:(id<GRMustacheTagDelegate>)tagDelegate GRMUSTACHE_API_PUBLIC;
 
 // Documented in GRMustacheContext.h
 - (GRMustacheContext *)contextByAddingObject:(id)object GRMUSTACHE_API_PUBLIC;

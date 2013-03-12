@@ -23,6 +23,8 @@
 #import <Foundation/Foundation.h>
 #import "GRMustacheAvailabilityMacros_private.h"
 
+@class GRMustacheContext;
+
 // Documented in GRMustacheConfiguration.h
 typedef NS_ENUM(NSUInteger, GRMustacheContentType) {
     // Documented in GRMustacheConfiguration.h
@@ -35,6 +37,9 @@ typedef NS_ENUM(NSUInteger, GRMustacheContentType) {
 // Documented in GRMustacheConfiguration.h
 @interface GRMustacheConfiguration : NSObject<NSCopying> {
     GRMustacheContentType _contentType;
+    NSString *_tagStartDelimiter;
+    NSString *_tagEndDelimiter;
+    GRMustacheContext *_baseContext;
     BOOL _locked;
 }
 
@@ -47,6 +52,15 @@ typedef NS_ENUM(NSUInteger, GRMustacheContentType) {
 
 // Documented in GRMustacheConfiguration.h
 @property (nonatomic) GRMustacheContentType contentType GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheConfiguration.h
+@property (nonatomic, copy) NSString *tagStartDelimiter GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheConfiguration.h
+@property (nonatomic, copy) NSString *tagEndDelimiter GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheConfiguration.h
+@property (nonatomic, retain) GRMustacheContext *baseContext;
 
 /**
  * Whether the receiver is locked or not.
