@@ -82,10 +82,11 @@ Mustache, and beyond:
 
 - [Feeding The Templates](Guides/runtime_patterns.md): an overview of various techniques to feed templates.
 - [Collection Indexes](Guides/sample_code/indexes.md): how to render array indexes, render sections for the first or the last element, for odd or even elements, etc.
+- Also check the [FAQ](#faq) below.
 
 ### Reference
 
-- [Reference](http://groue.github.com/GRMustache/Reference/): the GRMustache reference, automatically generated from inline documentation, for fun and profit, by [appledoc](http://gentlebytes.com/appledoc/).
+- [Reference](http://groue.github.io/GRMustache/Reference/): the GRMustache reference, automatically generated from inline documentation, for fun and profit, by [appledoc](http://gentlebytes.com/appledoc/).
 
 ### Internals
 
@@ -106,6 +107,14 @@ FAQ
     
     A: Yes. Use [NSNumberFormatter and NSDateFormatter](Guides/NSFormatter.md).
 
+- **Q: Is it possible to pluralize/singularize strings?**
+    
+    A: Yes. You have some [sample code](https://github.com/groue/GRMustache/issues/50#issuecomment-16197912) in issue #50. You may check [@mattt's InflectorKit](https://github.com/mattt/InflectorKit) for actual inflection methods.
+
+- **Q: Is it possible to localize templates?**
+
+    A: [Yes](Guides/standard_library.md#localize)
+
 - **Q: Is it possible to embed partial templates whose name is only known at runtime?**
 
     A: [Yes](Guides/rendering_objects.md)
@@ -113,10 +122,6 @@ FAQ
 - **Q: Does GRMustache provide any layout or template inheritance facility?**
     
     A: [Yes](Guides/partials.md)
-
-- **Q: Is it possible to localize templates?**
-
-    A: [Yes](Guides/standard_library.md#localize)
 
 - **Q: Is it possible to render a default value for missing keys?**
 
