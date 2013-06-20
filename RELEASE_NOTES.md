@@ -3,6 +3,57 @@ GRMustache Release Notes
 
 You can compare the performances of GRMustache versions at https://github.com/groue/GRMustacheBenchmark.
 
+## v6.7.4
+
+Bug fixes:
+
+- NSUndefinedKeyException prevention used not to work under a Garbage Collector-enabled OSX application.
+- Some custom setters of GRMustacheContext managed properties could prevent proper management of those properties.
+
+## v6.7.3
+
+More performance improvements.
+
+## v6.7.2
+
+Fix [issue #38](https://github.com/groue/GRMustache/issues/38).
+
+## v6.7.1
+
+Bug fixes regarding GRMustacheContext.
+
+## v6.7
+
+### Performance improvements
+
+Many thanks to [Alex Reid](https://github.com/AlexJReid) who could setup benchmarks revealing performance problems.
+
+### More ViewModel
+
+- `-[GRMustacheContext topMustacheObject]` gives you access to the top of the rendering stack
+- `-[GRMustacheContext valueForUndefinedMustacheKey:]` let your subclasses define default values for any key.
+
+Check the [ViewModel Guide](Guides/view_model.md) for more information.
+
+## v6.6
+
+`-[GRMustacheContext valueForMustacheKey:]` allows your ViewModels to dig in the [context stack](Guides/runtime.md#the-context-stack).
+
+`-[GRMustacheContext valueForMustacheExpression:error:]` allows your ViewModels to perform the same computations as Mustache tags, such as `{{ uppercase(user.name) }}`.
+
+Check the [ViewModel Guide](Guides/view_model.md) for more information.
+
+## v6.5.1
+
+Robustness of ViewModel classes.
+
+## v6.5
+
+### ViewModel classes
+
+ViewModel classes are havens for your template-specific keys. To be discovered in the [ViewModel Guide](Guides/view_model.md).
+
+
 ## v6.4.1
 
 Bugfixes:

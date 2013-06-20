@@ -1,13 +1,13 @@
 GRMustache
 ==========
 
-GRMustache is a flexible and production-ready implementation of [Mustache](http://mustache.github.com/) templates for MacOS Cocoa and iOS.
+GRMustache is a flexible and production-ready implementation of [Mustache](http://mustache.github.io/) templates for MacOS Cocoa and iOS.
 
 GRMustache targets iOS down to version 4.3, MacOS down to 10.6 Snow Leopard (with or without garbage collection), and only depends on the Foundation framework.
 
-**March 2, 2013: GRMustache 6.4.1 is out.** [Release notes](RELEASE_NOTES.md)
+**June 14, 2013: GRMustache 6.7.4 is out.** [Release notes](RELEASE_NOTES.md)
 
-Don't miss a single release: follow [@GRMustache on Twitter](http://twitter.com/GRMustache).
+Get release announcements and usage tips: follow [@GRMustache on Twitter](http://twitter.com/GRMustache).
 
 How To
 ------
@@ -45,7 +45,11 @@ Documentation
 
 ### Mustache syntax
 
-- http://mustache.github.com/mustache.5.html
+- http://mustache.github.io/mustache.5.html
+
+### Reference
+
+- [Reference](http://groue.github.io/GRMustache/Reference/): the GRMustache reference, automatically generated from inline documentation, for fun and profit, by [appledoc](http://gentlebytes.com/appledoc/).
 
 ### Guides
 
@@ -59,6 +63,7 @@ Basics:
 - [Partials](Guides/partials.md): decompose your templates into components named "partials".
 - [Templates Repositories](Guides/template_repositories.md): manage groups of templates.
 - [Runtime](Guides/runtime.md): how GRMustache renders your data.
+- [ViewModel](Guides/view_model.md): an overview of various techniques to feed templates.
 
 Services:
 
@@ -70,8 +75,8 @@ Services:
 Hooks:
 
 - [Filters](Guides/filters.md): `{{ uppercase(name) }}` et al.
-- [Tag Delegates](Guides/delegate.md): observe and alter template rendering.
 - [Rendering Objects](Guides/rendering_objects.md): "Mustache lambdas", and more.
+- [Tag Delegates](Guides/delegate.md): observe and alter template rendering.
 - [Protected Contexts](Guides/protected_contexts.md): protect some keys so that they always evaluate to the same value.
 
 Mustache, and beyond:
@@ -80,17 +85,8 @@ Mustache, and beyond:
 
 ### Sample code
 
-- [Feeding The Templates](Guides/runtime_patterns.md): an overview of various techniques to feed templates.
-- [Collection Indexes](Guides/sample_code/indexes.md): how to render array indexes, render sections for the first or the last element, for odd or even elements, etc.
-- Also check the [FAQ](#faq) below.
+Check the [FAQ](#faq) right below.
 
-### Reference
-
-- [Reference](http://groue.github.io/GRMustache/Reference/): the GRMustache reference, automatically generated from inline documentation, for fun and profit, by [appledoc](http://gentlebytes.com/appledoc/).
-
-### Internals
-
-- [Forking](Guides/forking.md): the forking guide tells you everything about GRMustache organization.
 
 FAQ
 ---
@@ -111,6 +107,10 @@ FAQ
     
     A: Yes. You have some [sample code](https://github.com/groue/GRMustache/issues/50#issuecomment-16197912) in issue #50. You may check [@mattt's InflectorKit](https://github.com/mattt/InflectorKit) for actual inflection methods.
 
+- **Q: Is it possible to write Handlebars-like helpers?**
+    
+    A: [Yes](Guides/rendering_objects.md)
+
 - **Q: Is it possible to localize templates?**
 
     A: [Yes](Guides/standard_library.md#localize)
@@ -125,7 +125,7 @@ FAQ
 
 - **Q: Is it possible to render a default value for missing keys?**
 
-    A: [Yes](Guides/delegate.md)
+    A: [Yes](Guides/view_model.md#default-values).
 
 - **Q: Is it possible to disable HTML escaping?**
 
@@ -133,13 +133,13 @@ FAQ
 
 - **Q: What is this NSUndefinedKeyException stuff?**
 
-    A: When GRMustache has to try several objects until it finds the one that provides a `{{key}}`, several NSUndefinedKeyException are raised and caught. Let us double guess you: it's likely that you wish Xcode would stop breaking on those exceptions. This use case is covered in the [Runtime Guide](Guides/runtime.md).
+    A: When GRMustache has to try several objects until it finds the one that provides a `{{key}}`, several NSUndefinedKeyException may be raised and caught. It's likely that you wish Xcode would stop breaking on those exceptions: see the [Runtime Guide](Guides/runtime.md#nsundefinedkeyexception-prevention).
 
 - **Q: Why does GRMustache need JRSwizzle?**
 
-    A: GRMustache does not *need* it, and this [swizzling](http://www.mikeash.com/pyblog/friday-qa-2010-01-29-method-replacement-for-fun-and-profit.html) is a mere convenience that will not ship in your released binary:
+    A: GRMustache does not need it, and does not swizzle anything unless you explicitly ask for it. `[GRMustache preventNSUndefinedKeyExceptionAttack]` swizzles NSObject's `valueForUndefinedKey:` in order to prevent NSUndefinedKeyException during template rendering.
     
-    *You* may be happy having GRMustache swizzle `valueForUndefinedKey:` in the NSObject class when you invoke `[GRMustache preventNSUndefinedKeyExceptionAttack]`: it allows you to debug your application without being interrupted by the NSUndefinedKeyException that may be raised and caught by template rendering. The use case is described in the [Runtime Guide](Guides/runtime.md).
+    You will debug your application without Xcode's exception breakpoint disturbing you. You may even improve rendering performances. See the [Runtime Guide](Guides/runtime.md#nsundefinedkeyexception-prevention).
 
 What other people say
 ---------------------
@@ -177,7 +177,7 @@ What other people say
 > GRMustache is teh awesome. Nice to find an open-source library that is more pleasant to use than expected.
 
 
-Popular projects & apps using GRMustache
+Who's using GRMustache
 ----------------------------------------
 
 * [tomaz/appledoc](https://github.com/tomaz/appledoc): Objective-c code Apple style documentation set generator
@@ -189,6 +189,8 @@ Popular projects & apps using GRMustache
 * [FunGolf GPS](http://itunes.com/apps/fungolf), a golf app with 3D maps
 * [KosmicTask](http://www.mugginsoft.com/kosmictask), an integrated scripting environment for OS X that supports more than 20 scripting languages.
 * [Servus](https://servus.io) can turn any file on your computer into a branded download page hosted on Dropbox.
+
+Do you use GRMustache? [Tweet me](http://twitter.com/GRMustache) your link.
 
 
 Contribution wish-list

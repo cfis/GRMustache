@@ -94,4 +94,11 @@
     STAssertEqualObjects([template renderObject:nil error:NULL], @"foo:", nil);
 }
 
+- (void)testNSUndefinedKeyExceptionPreventionInThread
+{
+    NSThread *thread = [[[NSThread alloc] initWithTarget:self selector:@selector(testNSUndefinedKeyExceptionPrevention) object:nil] autorelease];
+    [thread start];
+    while (!thread.isFinished);
+}
+
 @end

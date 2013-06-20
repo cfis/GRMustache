@@ -1,9 +1,9 @@
-[up](../../../../GRMustache#documentation), [next](configuration.md)
+[up](../../../../GRMustache#documentation), [next](view_model.md)
 
 GRMustache runtime
 ==================
 
-You'll learn here how GRMustache renders your data. The loading of templates is covered in the [Templates Guide](templates.md). Common patterns for feeding templates are described in the [Feeding Templates Guides](runtime_patterns.md).
+You'll learn here how GRMustache renders your data. The loading of templates is covered in the [Templates Guide](templates.md). Common patterns for feeding templates are described in the [ViewModel Guide](view_model.md).
 
 Variable tags
 -------------
@@ -233,7 +233,7 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
 
 ### Lambda sections
 
-Mustache defines [lambda sections](http://mustache.github.com/mustache.5.html), that is, sections that execute your own application code, and allow you to extend the core Mustache engine.
+Mustache defines [lambda sections](http://mustache.github.io/mustache.5.html), that is, sections that execute your own application code, and allow you to extend the core Mustache engine.
 
 Such sections are fully documented in the [Rendering Objects Guide](rendering_objects.md), but here is a preview:
 
@@ -256,7 +256,7 @@ The `localize` key is attached to a rendering object that is built in the [stand
 
 ### Other sections
 
-When a section renders an object that is not false, not enumerable, not a lambda, it renders once, making the objet available for the key lookup inside the section:
+When a section renders a value that is not false, not enumerable, not a [rendering object](rendering_objects.md), it renders once, making the value available for the key lookup inside the section:
 
 ```objc
 Person *ignacio = [Person personWithName:@"Ignacio"];
@@ -295,7 +295,7 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
                                                  error:NULL];
 ```
 
-The `withPosition` filter, that makes the `position` key available inside the section, is described in the [Collection Indexes Sample Code](sample_code/indexes.md).
+The `withPosition` filter returns a [rendering object](rendering_objects.md) that makes the `position` key available inside the section. It is described in the [Collection Indexes Sample Code](sample_code/indexes.md).
 
 
 The Context Stack
@@ -358,23 +358,35 @@ Detailed description of GRMustache handling of `valueForKey:`
 
 As seen above, GRMustache looks for a key in your data objects with the `valueForKey:` method. With some extra bits.
 
-### NSUndefinedKeyException handling
+
+### NSUndefinedKeyException Handling
 
 NSDictionary never complains when asked for an unknown key. However, the default NSObject implementation of `valueForKey:` raises an `NSUndefinedKeyException`.
 
 *GRMustache catches those exceptions*, so that the key lookup can continue down the context stack.
 
-When debugging your project, those exceptions may become a real annoyance, because it's likely you've told your debugger to stop on every Objective-C exceptions.
+
+### NSUndefinedKeyException Prevention
+
+When debugging your project, NSUndefinedKeyException raised by template rendering may become a real annoyance, because it's likely you've told your debugger to stop on every Objective-C exceptions.
 
 You can avoid that: make sure you invoke once, early in your application, the following method:
 
 ```objc
+[GRMustache preventNSUndefinedKeyExceptionAttack];
+```
+
+Depending on the number of NSUndefinedKeyException that get prevented, you will experience a slight performance hit, or a performance improvement.
+
+Since the main use case for this method is to avoid Xcode breaks on rendering exceptions, the best practice is to conditionally invoke this method, using the [NS_BLOCK_ASSERTIONS](http://developer.apple.com/library/mac/#documentation/Cocoa/Reference/Foundation/Miscellaneous/Foundation_Functions/Reference/reference.html) that helps identifying the Debug configuration of your targets:
+
+```objc
 #if !defined(NS_BLOCK_ASSERTIONS)
+// Debug configuration: keep GRMustache quiet
 [GRMustache preventNSUndefinedKeyExceptionAttack];
 #endif
 ```
 
-You'll get a slight performance hit, so you'd probably make sure this call does not enter your Release configuration. The conditional compilation based on the `NS_BLOCK_ASSERTIONS` macro aboce does exactly that (see http://developer.apple.com/library/mac/#documentation/Cocoa/Reference/Foundation/Miscellaneous/Foundation_Functions/Reference/reference.html).
 
 ### NSArray, NSSet, NSOrderedSet
 
@@ -406,4 +418,4 @@ That's unfortunate. Anyway, for the record, here is a reminder of all false valu
 - empty strings `@""`
 - empty enumerables.
 
-[up](../../../../GRMustache#documentation), [next](configuration.md)
+[up](../../../../GRMustache#documentation), [next](view_model.md)

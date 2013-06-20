@@ -20,44 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import "GRMustacheToken_private.h"
+#import <Foundation/Foundation.h>
+#import "GRMustacheAvailabilityMacros_private.h"
 
+@class GRMustacheExpression;
 
-@implementation GRMustacheToken
-@synthesize type=_type;
-@synthesize templateString=_templateString;
-@synthesize templateID=_templateID;
-@synthesize line=_line;
-@synthesize range=_range;
-@synthesize tagInnerRange=_tagInnerRange;
+@interface GRMustacheExpressionParser : NSObject
 
-- (void)dealloc
-{
-    [_templateString release];
-    [_templateID release];
-    [super dealloc];
-}
-
-+ (instancetype)tokenWithType:(GRMustacheTokenType)type templateString:(NSString *)templateString templateID:(id)templateID line:(NSUInteger)line range:(NSRange)range
-{
-    GRMustacheToken *token = [[[self alloc] init] autorelease];
-    token.type = type;
-    token.templateString = templateString;
-    token.templateID = templateID;
-    token.line = line;
-    token.range = range;
-    return token;
-}
-
-- (NSString *)templateSubstring
-{
-    return [_templateString substringWithRange:_range];
-}
-
-- (NSString *)tagInnerContent
-{
-    return [_templateString substringWithRange:_tagInnerRange];
-}
+/**
+ * Returns an expression from a string.
+ *
+ * @param string  A string.
+ * @param empty   If there is an error parsing the expression, upon return
+ *                contains YES if the string contains no expression.
+ * @param error   If there is an error parsing the expression, upon return
+ *                contains an NSError object that describes the problem.
+ *
+ * @return An expression, or nil if the parsing fails or if the expression is
+ * empty.
+ */
+- (GRMustacheExpression *)parseExpression:(NSString *)string empty:(BOOL *)empty error:(NSError **)error GRMUSTACHE_API_INTERNAL;
 
 @end
-

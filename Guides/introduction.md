@@ -6,7 +6,7 @@ GRMustache introduction
 Core Mustache
 -------------
 
-Make sure you get familiar with the Mustache syntax and features first: http://mustache.github.com/mustache.5.html.
+Make sure you get familiar with the Mustache syntax and features first: http://mustache.github.io/mustache.5.html.
 
 - **variable tags**, as `{{name}}`, `{{{name}}}` and `{{&name}}` (HTML-escaped or not)
 - **section tags** (boolean, loop, lambda, inverted), as `{{#name}}...{{/name}}` and `{{^name}}...{{/name}}`
@@ -18,7 +18,7 @@ Make sure you get familiar with the Mustache syntax and features first: http://m
 Overlooked Mustache
 -------------------
 
-Those are not documented in [mustache.5.html](http://mustache.github.com/mustache.5.html), despite their inclusion in the [Mustache specification](https://github.com/mustache/spec):
+Those are not documented in [mustache.5.html](http://mustache.github.io/mustache.5.html), despite their inclusion in the [Mustache specification](https://github.com/mustache/spec):
 
 - **Key paths**, as `{{ person.name }}`, for direct access to an object's property.
 - **"Implicit iterator"**, aka `{{.}}`, directly renders the current object (useful when looping over strings, for instance).
@@ -31,6 +31,10 @@ Beyond Mustache
 Genuine Mustache falls short on a few topics.
 
 GRMustache core engine implements syntaxes and features that are not in the specification (see the [Compatibility Guide](compatibility.md) for details).
+
+### ViewModel classes
+
+ViewModel classes let you implement specific keys for your templates. Check the [ViewModel Guide](view_model.md).
 
 
 ### Syntax extensions
@@ -47,7 +51,7 @@ GRMustache core engine implements syntaxes and features that are not in the spec
 
 - **"Anchored key paths"**, as `{{ .name }}` which enforces lookup of the `name` key in the immediate context instead of going through the context stack built by Mustache sections.
     
-    If you are not familiar with the "context stack" and the Mustache key lookup mechanism, check the [Runtime Guide](runtime.md).
+    If you are not familiar with the "context stack" and the Mustache key lookup mechanism, check the [Runtime Guide](runtime.md#the-context-stack).
 
 - **Loops in variable tags**: a simple variable tag `{{items}}` renders a concatenation of the rendering of each individual item. You may think of Ruby on Rails' `<%= render @items %>`: check the [Rendering Objects Guide](rendering_objects.md).
 

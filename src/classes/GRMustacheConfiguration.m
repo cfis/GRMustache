@@ -24,8 +24,6 @@
 #import "GRMustache_private.h"
 #import "GRMustacheContext_private.h"
 
-static GRMustacheConfiguration *defaultConfiguration;
-
 @interface GRMustacheConfiguration()
 - (void)assertNotLocked;
 @end
@@ -37,13 +35,13 @@ static GRMustacheConfiguration *defaultConfiguration;
 @synthesize baseContext=_baseContext;
 @synthesize locked=_locked;
 
-+ (void)load
-{
-    defaultConfiguration = [[GRMustacheConfiguration alloc] init];
-}
-
 + (GRMustacheConfiguration *)defaultConfiguration
 {
+    static GRMustacheConfiguration *defaultConfiguration;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        defaultConfiguration = [[GRMustacheConfiguration alloc] init];
+    });
     return defaultConfiguration;
 }
 
@@ -135,10 +133,10 @@ static GRMustacheConfiguration *defaultConfiguration;
 - (id)copyWithZone:(NSZone *)zone
 {
     GRMustacheConfiguration *configuration = [[GRMustacheConfiguration alloc] init];
-    configuration.contentType = self.contentType;
-    configuration.tagStartDelimiter = self.tagStartDelimiter;
-    configuration.tagEndDelimiter = self.tagEndDelimiter;
-    configuration.baseContext = self.baseContext;
+    configuration.contentType = _contentType;
+    configuration.tagStartDelimiter = _tagStartDelimiter;
+    configuration.tagEndDelimiter = _tagEndDelimiter;
+    configuration.baseContext = _baseContext;
     return configuration;
 }
 

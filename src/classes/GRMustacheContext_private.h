@@ -62,16 +62,44 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  */
 @interface GRMustacheContext : NSObject {
 @private
+    // Context stack
+    //
+    // The top of the stack is the pair (_contextObject, _managedPropertiesStore).
+    // Both of them may be nil.
+    // The rest of the stack is _contextParent.
     GRMustacheContext *_contextParent;
     id _contextObject;
+    NSMutableDictionary *_managedPropertiesStore;
+    
+    // Protected context stack
+    //
+    // If _protectedContextObject is nil, the stack is empty.
+    // If _protectedContextObject is not nil, the top of the stack is _protectedContextObject, and the rest of the stack is _protectedContextParent.
     GRMustacheContext *_protectedContextParent;
     id _protectedContextObject;
+    
+    // Hidden context stack
+    //
+    // If _hiddenContextObject is nil, the stack is empty.
+    // If _hiddenContextObject is not nil, the top of the stack is _hiddenContextObject, and the rest of the stack is _hiddenContextParent.
     GRMustacheContext *_hiddenContextParent;
     id _hiddenContextObject;
+    
+    // Tag delegate stack
+    //
+    // If _tagDelegate is nil, the stack is empty.
+    // If _tagDelegate is not nil, the top of the stack is _tagDelegate, and the rest of the stack is _tagDelegateParent.
     GRMustacheContext *_tagDelegateParent;
     id<GRMustacheTagDelegate> _tagDelegate;
+    
+    // Template override stack
+    //
+    // If _templateOverride is nil, the stack is empty.
+    // If _templateOverride is not nil, the top of the stack is _templateOverride, and the rest of the stack is _templateOverrideParent.
     GRMustacheContext *_templateOverrideParent;
     GRMustacheTemplateOverride *_templateOverride;
+
+    NSDictionary *_depthsForAncestors;
 }
 
 /**
@@ -86,10 +114,6 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  * Sends the `valueForKey:` message to _object_ with the provided _key_, and
  * returns the result.
  *
- * Should [GRMustacheContext preventNSUndefinedKeyExceptionAttack] method have
- * been called earlier, temporarily swizzle _object_ so that most
- * NSUndefinedKeyException are avoided.
- * 
  * Should `valueForKey:` raise an NSUndefinedKeyException, returns nil.
  *
  * @param key     The searched key
@@ -97,8 +121,6 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  *
  * @return `[object valueForKey:key]`, or nil should an NSUndefinedKeyException
  *         be raised.
- *
- * @see preventNSUndefinedKeyExceptionAttack
  */
 + (id)valueForKey:(NSString *)key inObject:(id)object GRMUSTACHE_API_INTERNAL;
 
@@ -115,19 +137,38 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
 + (instancetype)contextWithTagDelegate:(id<GRMustacheTagDelegate>)tagDelegate GRMUSTACHE_API_PUBLIC;
 
 // Documented in GRMustacheContext.h
-- (GRMustacheContext *)contextByAddingObject:(id)object GRMUSTACHE_API_PUBLIC;
+- (instancetype)contextByAddingObject:(id)object GRMUSTACHE_API_PUBLIC;
 
 // Documented in GRMustacheContext.h
-- (GRMustacheContext *)contextByAddingProtectedObject:(id)object GRMUSTACHE_API_PUBLIC;
+- (instancetype)contextByAddingProtectedObject:(id)object GRMUSTACHE_API_PUBLIC;
 
 // Documented in GRMustacheContext.h
-- (GRMustacheContext *)contextByAddingTagDelegate:(id<GRMustacheTagDelegate>)tagDelegate GRMUSTACHE_API_PUBLIC;
+- (instancetype)contextByAddingTagDelegate:(id<GRMustacheTagDelegate>)tagDelegate GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
+- (id)valueForMustacheExpression:(NSString *)expression error:(NSError **)error GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
+- (id)valueForMustacheKey:(NSString *)key GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
+- (id)valueForUndefinedMustacheKey:(NSString *)key GRMUSTACHE_API_PUBLIC;
+
+// Documented in GRMustacheContext.h
+// @see -[GRMustacheImplicitIteratorExpression hasValue:withContext:protected:error:]
+@property (nonatomic, readonly) id topMustacheObject GRMUSTACHE_API_PUBLIC;
+
+/**
+ * Same as [parent contextByAddingObject:object], but returns a retained object.
+ * This method helps efficiently managing memory, and targeting slow methods.
+ */
++ (instancetype)newContextWithParent:(GRMustacheContext *)parent addedObject:(id)object GRMUSTACHE_API_INTERNAL;
 
 /**
  * Returns a GRMustacheContext object identical to the receiver, but for the
  * hidden object stack that is extended with _object_.
  *
- * Hidden objects can not be queried by the contextValueForKey:protected:
+ * Hidden objects can not be queried by the valueForMustacheKey:protected:
  * method.
  *
  * For a full discussion of the interaction between the protected and the hidden
@@ -138,9 +179,9 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  *
  * @return A GRMustacheContext object.
  *
- * @see [GRMustacheContext contextValueForKey:protected:]
+ * @see [GRMustacheContext valueForMustacheKey:protected:]
  */
-- (GRMustacheContext *)contextByAddingHiddenObject:(id)object GRMUSTACHE_API_INTERNAL;
+- (instancetype)contextByAddingHiddenObject:(id)object GRMUSTACHE_API_INTERNAL;
 
 /**
  * Returns a GRMustacheContext object identical to the receiver, but for the
@@ -153,7 +194,7 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  * @see GRMustacheTemplateOverride
  * @see [GRMustacheTemplateOverride renderWithContext:inBuffer:error:]
  */
-- (GRMustacheContext *)contextByAddingTemplateOverride:(GRMustacheTemplateOverride *)templateOverride GRMUSTACHE_API_INTERNAL;
+- (instancetype)contextByAddingTemplateOverride:(GRMustacheTemplateOverride *)templateOverride GRMUSTACHE_API_INTERNAL;
 
 /**
  * Performs a key lookup in the receiver's context stack, and returns the found
@@ -167,16 +208,7 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
  *
  * @see -[GRMustacheIdentifierExpression hasValue:withContext:protected:error:]
  */
-- (id)contextValueForKey:(NSString *)key protected:(BOOL *)protected GRMUSTACHE_API_INTERNAL;
-
-/**
- * Returns the top object of the receiver's context stack.
- *
- * @return The top object of the receiver's context stack.
- *
- * @see -[GRMustacheImplicitIteratorExpression hasValue:withContext:protected:error:]
- */
-- (id)currentContextValue GRMUSTACHE_API_INTERNAL;
+- (id)valueForMustacheKey:(NSString *)key protected:(BOOL *)protected GRMUSTACHE_API_INTERNAL;
 
 /**
  * In the context of overridable partials, return the component that should be
@@ -191,9 +223,11 @@ extern BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
 - (id<GRMustacheTemplateComponent>)resolveTemplateComponent:(id<GRMustacheTemplateComponent>)component GRMUSTACHE_API_INTERNAL;
 
 /**
- * Executes a given block using each tag delegate in the tag delegate stack.
+ * Returns an array containing all tag delegates in the delegate stack.
+ * Array may be null (meaning there is no tag delegate in the stack).
  *
- * @param block  The block to apply to tag delegates.
+ * Last object is the top object in the delegate stack.
  */
-- (void)enumerateTagDelegatesUsingBlock:(void(^)(id<GRMustacheTagDelegate> tagDelegate))block GRMUSTACHE_API_INTERNAL;
+- (NSArray *)tagDelegateStack GRMUSTACHE_API_INTERNAL;
+
 @end
