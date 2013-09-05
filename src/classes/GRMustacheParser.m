@@ -82,6 +82,16 @@
 
 - (void)parseTemplateString:(NSString *)templateString templateID:(id)templateID
 {
+    if (templateString == nil) {
+        if ([_delegate respondsToSelector:@selector(parser:didFailWithError:)]) {
+            [_delegate parser:self didFailWithError:[NSError errorWithDomain:GRMustacheErrorDomain
+                                                                        code:GRMustacheErrorCodeTemplateNotFound
+                                                                    userInfo:[NSDictionary dictionaryWithObject:@"Nil template string can not be parsed."
+                                                                                                         forKey:NSLocalizedDescriptionKey]]];
+        }
+        return;
+    }
+    
     // Extract characters
     
     NSUInteger length = [templateString length];

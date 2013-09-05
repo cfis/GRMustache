@@ -20,42 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#define GRMUSTACHE_VERSION_MAX_ALLOWED GRMUSTACHE_VERSION_6_6
+#define GRMUSTACHE_VERSION_MAX_ALLOWED GRMUSTACHE_VERSION_6_8
 #import "GRMustachePublicAPITest.h"
 
-@interface GRMustacheContextValueForMustacheExpressionTest : GRMustachePublicAPITest
+@interface GRMustacheContextHasValueForMustacheExpressionTest : GRMustachePublicAPITest
 @end
 
-@implementation GRMustacheContextValueForMustacheExpressionTest
+@implementation GRMustacheContextHasValueForMustacheExpressionTest
 
-- (void)testValueForMustacheKey
-{
-    GRMustacheContext *context = [GRMustacheContext contextWithObject:[GRMustache standardLibrary]];
-    id data = @{ @"name": @"name1", @"a": @{ @"name": @"name2" }};
-    context = [context contextByAddingObject:data];
-    {
-        // '.' is an expression, not a key
-        id value = [context valueForMustacheKey:@"."];
-        STAssertNil(value, @"");
-    }
-    {
-        // 'name' is a key
-        id value = [context valueForMustacheKey:@"name"];
-        STAssertEqualObjects(value, @"name1", @"");
-    }
-    {
-        // 'a.name' is an expression, not a key
-        id value = [context valueForMustacheKey:@"a.name"];
-        STAssertNil(value, @"");
-    }
-    {
-        // 'uppercase' is a key
-        id value = [context valueForMustacheKey:@"uppercase"];
-        STAssertTrue([value conformsToProtocol:@protocol(GRMustacheFilter)], @"");
-    }
-}
-
-- (void)testValueForMustacheExpression
+- (void)testHasValueForMustacheExpression
 {
     GRMustacheContext *context = [GRMustacheContext contextWithObject:[GRMustache standardLibrary]];
     id filter = [GRMustacheFilter filterWithBlock:^id(id value) {
@@ -63,45 +36,51 @@
     }];
     id data = @{ @"name": @"name1", @"a": @{ @"name": @"name2" }, @"filter": filter };
     context = [context contextByAddingObject:data];
+    id value;
     {
-        id value = [context valueForMustacheExpression:@"." error:NULL];
+        BOOL success = [context hasValue:&value forMustacheExpression:@"." error:NULL];
+        STAssertTrue(success, @"");
         STAssertEquals(value, data, @"");
     }
     {
-        id value = [context valueForMustacheExpression:@"name" error:NULL];
+        BOOL success = [context hasValue:&value forMustacheExpression:@"name" error:NULL];
+        STAssertTrue(success, @"");
         STAssertEqualObjects(value, @"name1", @"");
     }
     {
-        id value = [context valueForMustacheExpression:@"a.name" error:NULL];
+        BOOL success = [context hasValue:&value forMustacheExpression:@"a.name" error:NULL];
+        STAssertTrue(success, @"");
         STAssertEqualObjects(value, @"name2", @"");
     }
     {
-        id value = [context valueForMustacheExpression:@"filter(a.name)" error:NULL];
+        BOOL success = [context hasValue:&value forMustacheExpression:@"filter(a.name)" error:NULL];
+        STAssertTrue(success, @"");
         STAssertEqualObjects(value, @"NAME2", @"");
     }
 }
 
-- (void)testValueForInvalidMustacheExpression
+- (void)testHasValueForInvalidMustacheExpression
 {
     GRMustacheContext *context = [GRMustacheContext contextWithObject:@{@"foo": @"bar"}];
+    id value;
     {
         NSError *error;
-        id value = [context valueForMustacheExpression:@"a." error:&error];
-        STAssertNil(value, @"");
+        BOOL success = [context hasValue:&value forMustacheExpression:@"a." error:&error];
+        STAssertFalse(success, @"");
         STAssertEqualObjects(error.domain, GRMustacheErrorDomain, @"");
         STAssertEquals(error.code, GRMustacheErrorCodeParseError, @"");
     }
     {
         NSError *error;
-        id value = [context valueForMustacheExpression:@"a(b)" error:&error];
-        STAssertNil(value, @"");
+        BOOL success = [context hasValue:&value forMustacheExpression:@"a(b)" error:&error];
+        STAssertFalse(success, @"");
         STAssertEqualObjects(error.domain, GRMustacheErrorDomain, @"");
         STAssertEquals(error.code, GRMustacheErrorCodeRenderingError, @""); // missing filter a
     }
     {
         NSError *error;
-        id value = [context valueForMustacheExpression:@"foo(bar)" error:&error];
-        STAssertNil(value, @"");
+        BOOL success = [context hasValue:&value forMustacheExpression:@"foo(bar)" error:&error];
+        STAssertFalse(success, @"");
         STAssertEqualObjects(error.domain, GRMustacheErrorDomain, @"");
         STAssertEquals(error.code, GRMustacheErrorCodeRenderingError, @""); // not a filter
     }

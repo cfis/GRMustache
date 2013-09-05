@@ -4,7 +4,6 @@
 		<meta http-equiv="Content-Type" content="html/html; charset=utf-8" />
 		<title>GRMustacheTagDelegate Protocol Reference</title>
 		<meta id="xcode-display" name="xcode-display" content="render"/>
-		<meta name="viewport" content="width=550" />
 		<link rel="stylesheet" type="text/css" href="../css/styles.css" media="all" />
 		<link rel="stylesheet" type="text/css" media="print" href="../css/stylesPrint.css" />
 		<meta name="generator" content="appledoc 2.1 (build 858)" />
@@ -12,7 +11,7 @@
 	<body>
 		<header id="top_header">
 			<div id="library" class="hideInXcode">
-				<h1><a id="libraryTitle" href="../index.html">GRMustache 6.7 </a></h1>
+				<h1><a id="libraryTitle" href="../index.html">GRMustache 6.8 </a></h1>
 				<a id="developerHome" href="../index.html">Gwendal Roué</a>
 			</div>
 			
@@ -115,8 +114,8 @@
 </tr>
 						</tbody></table></div>
 					
-					
-					
+                    
+                    
 					
 					<div class="section section-overview">
 						<a title="Overview" name="overview"></a>
@@ -143,21 +142,18 @@ alter, the rendering of Mustache tags.</p>
 							<li>
 	<span class="tooltip">
 		<code><a href="#//api/name/mustacheTag:willRenderObject:">&ndash;&nbsp;mustacheTag:willRenderObject:</a></code>
-		<span class="tooltip"><p>Sent right before a Mustache tag renders.</p></span>
 	</span>
 	
 	
 </li><li>
 	<span class="tooltip">
 		<code><a href="#//api/name/mustacheTag:didRenderObject:as:">&ndash;&nbsp;mustacheTag:didRenderObject:as:</a></code>
-		<span class="tooltip"><p>Sent right after a Mustache tag has rendered.</p></span>
 	</span>
 	
 	
 </li><li>
 	<span class="tooltip">
 		<code><a href="#//api/name/mustacheTag:didFailRenderingObject:withError:">&ndash;&nbsp;mustacheTag:didFailRenderingObject:withError:</a></code>
-		<span class="tooltip"><p>Sent right after a Mustache tag has failed rendering.</p></span>
 	</span>
 	
 	
@@ -220,7 +216,7 @@ alter, the rendering of Mustache tags.</p>
 	
 	<div class="method-subsection availability">
 		<h4 class="method-subtitle parameter-title">Availability</h4>
-		
+		<p>v6.0</p>
 	</div>
 	
 	
@@ -228,6 +224,15 @@ alter, the rendering of Mustache tags.</p>
 	
 	
 	
+	
+	<div class="method-subsection see-also-section">
+		<h4 class="method-subtitle">See Also</h4>
+		<ul>
+			
+			<li><code><p><a href="../Classes/GRMustacheTag.html">GRMustacheTag</a></p></code></li>
+			
+		</ul>
+	</div>
 	
 	
 	
@@ -246,7 +251,7 @@ alter, the rendering of Mustache tags.</p>
 	
 	
 	<div class="method-subsection brief-description">
-		<p>Sent right after a Mustache tag has rendered.</p>
+		<p>Sent after a Mustache tag has rendered.</p>
 	</div>		
 	
     
@@ -281,7 +286,7 @@ alter, the rendering of Mustache tags.</p>
 	
 	<div class="method-subsection availability">
 		<h4 class="method-subtitle parameter-title">Availability</h4>
-		
+		<p>v6.0</p>
 	</div>
 	
 	
@@ -289,6 +294,15 @@ alter, the rendering of Mustache tags.</p>
 	
 	
 	
+	
+	<div class="method-subsection see-also-section">
+		<h4 class="method-subtitle">See Also</h4>
+		<ul>
+			
+			<li><code><p><a href="../Classes/GRMustacheTag.html">GRMustacheTag</a></p></code></li>
+			
+		</ul>
+	</div>
 	
 	
 	
@@ -307,7 +321,7 @@ alter, the rendering of Mustache tags.</p>
 	
 	
 	<div class="method-subsection brief-description">
-		<p>Sent right before a Mustache tag renders.</p>
+		<p>Sent before a Mustache tag renders.</p>
 	</div>		
 	
     
@@ -335,21 +349,38 @@ alter, the rendering of Mustache tags.</p>
 	
 	<div class="method-subsection return">
 		<h4 class="method-subtitle parameter-title">Return Value</h4>
-		<p>the object that should be rendered.</p>
+		<p>The object that should be rendered.</p>
 	</div>
 	
 	
 	
 	<div class="method-subsection availability">
 		<h4 class="method-subtitle parameter-title">Availability</h4>
-		
+		<p>v6.0</p>
+	</div>
+	
+	
+	
+	<div class="method-subsection discussion-section">
+		<h4 class="method-subtitle">Discussion</h4>
+		<p>This method gives an opportunity to alter objects that are rendered.</p>
+
+<p>For example, it is implemented by the NSFormatter class, in templates like
+<code>{{# dateFormatter }}...{{ value }}...{{ value }}... {{/}}</code>.</p>
 	</div>
 	
 	
 	
 	
 	
-	
+	<div class="method-subsection see-also-section">
+		<h4 class="method-subtitle">See Also</h4>
+		<ul>
+			
+			<li><code><p><a href="../Classes/GRMustacheTag.html">GRMustacheTag</a></p></code></li>
+			
+		</ul>
+	</div>
 	
 	
 	
@@ -364,6 +395,8 @@ alter, the rendering of Mustache tags.</p>
 					</div>
 					
 					
+                    
+                    
 				</div>
 				<div class="main-navigation navigation-bottom">
 					<ul>
@@ -374,7 +407,7 @@ alter, the rendering of Mustache tags.</p>
 				<div id="footer">
 					<hr />
 					<div class="footer-copyright">
-						<p><span class="copyright">&copy; 2013 Gwendal Roué. All rights reserved. (Last updated: 2013-05-25)</span><br />
+						<p><span class="copyright">&copy; 2013 Gwendal Roué. All rights reserved. (Last updated: 2013-08-10)</span><br />
 						
 						<span class="generator">Generated by <a href="http://appledoc.gentlebytes.com">appledoc 2.1 (build 858)</a>.</span></p>
 						

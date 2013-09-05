@@ -56,15 +56,21 @@
 
 - (void)testLocalizer
 {
-    NSString *testable = [self.localizer transformedValue:@"testable?"];
-    STAssertEqualObjects(testable, @"YES", @"");
+    NSString *templateString = @"{{localize(string)}}";
+    GRMustacheTemplate *template = [GRMustacheTemplate templateFromString:templateString error:NULL];
+    id data = @{ @"localize": self.localizer, @"string": @"testable?" };
+    NSString *rendering = [template renderObject:data error:NULL];
+    STAssertEqualObjects(rendering, @"YES", @"");
 }
 
 - (void)testLocalizerFromTable
 {
-    GRMustacheLocalizer *helper = [[[GRMustacheLocalizer alloc] initWithBundle:self.localizableBundle tableName:@"Table"] autorelease];
-    NSString *testable = [helper transformedValue:@"table_testable?"];
-    STAssertEqualObjects(testable, @"YES", @"");
+    NSString *templateString = @"{{localize(string)}}";
+    GRMustacheTemplate *template = [GRMustacheTemplate templateFromString:templateString error:NULL];
+    GRMustacheLocalizer *localizer = [[[GRMustacheLocalizer alloc] initWithBundle:self.localizableBundle tableName:@"Table"] autorelease];
+    id data = @{ @"localize": localizer, @"string": @"table_testable?" };
+    NSString *rendering = [template renderObject:data error:NULL];
+    STAssertEqualObjects(rendering, @"YES", @"");
 }
 
 - (void)testDefaultLocalizerAsFilter
