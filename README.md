@@ -5,7 +5,7 @@ GRMustache is a flexible and production-ready implementation of [Mustache](http:
 
 GRMustache targets iOS down to version 4.3, MacOS down to 10.6 Snow Leopard (with or without garbage collection), and only depends on the Foundation framework.
 
-**August 10, 2013: GRMustache 6.8.2 is out.** [Release notes](RELEASE_NOTES.md)
+**October 19, 2013: GRMustache 6.8.3 is out.** [Release notes](RELEASE_NOTES.md)
 
 Get release announcements and usage tips: follow [@GRMustache on Twitter](http://twitter.com/GRMustache).
 
@@ -25,15 +25,27 @@ You have three options, from the simplest to the hairiest:
 
 ```objc
 #import "GRMustache.h"
+```
 
+One-liners:
+
+```objc
 // Renders "Hello Arthur!"
-NSString *rendering = [GRMustacheTemplate renderObject:@{ @"name": @"Arthur" }
-                                            fromString:@"Hello {{name}}!"
-                                                 error:NULL];
+NSString *rendering = [GRMustacheTemplate renderObject:@{ @"name": @"Arthur" } fromString:@"Hello {{name}}!" error:NULL];
+```
 
-// Renders a document from the `Profile.mustache` resource
-GRMustacheTemplate *template = [GRMustacheTemplate templateFromResource:@"Profile" bundle:nil error:NULL];
-NSString *rendering = [template renderObject:self.currentUser error:NULL];
+```objc
+// Renders the `Profile.mustache` resource of the main bundle
+NSString *rendering = [GRMustacheTemplate renderObject:user fromResource:@"Profile" bundle:nil error:NULL];
+```
+
+Reuse templates in order to avoid parsing the same template several times:
+
+```objc
+GRMustacheTemplate *template = [GRMustacheTemplate templateFromResource:@"Profile" bundle:nil error:nil];
+rendering = [template renderObject:arthur error:NULL];
+rendering = [template renderObject:barbara error:NULL];
+rendering = ...
 ```
 
 [GRMustachio](https://github.com/mugginsoft/GRMustachio) by Jonathan Mitchell is "A super simple, interactive GRMustache based application". It can help you design and test your templates.
@@ -178,18 +190,19 @@ What other people say
 Who's using GRMustache
 ----------------------------------------
 
-* [tomaz/appledoc](https://github.com/tomaz/appledoc): Objective-c code Apple style documentation set generator
-* [mapbox/mapbox-ios-sdk](https://github.com/mapbox/mapbox-ios-sdk): MapBox iOS SDK, an open source alternative to MapKit
-* [CarterA/Tribo](https://github.com/CarterA/Tribo): Extremely fast static site generator written in Objective-C
+* [tomaz/appledoc](https://github.com/tomaz/appledoc): Objective-c code Apple style documentation set generator.
+* [mapbox/mapbox-ios-sdk](https://github.com/mapbox/mapbox-ios-sdk): MapBox iOS SDK, an open source alternative to MapKit.
+* [CarterA/Tribo](https://github.com/CarterA/Tribo): Extremely fast static site generator written in Objective-C.
 * [AutoLib](http://itunes.com/apps/autolib) uses GRMustache and [spullara/mustache.java](https://github.com/spullara/mustache.java) for rendering an identical set of Mustache templates on iOS and Android.
 * [Bee](http://www.neat.io/bee): Bee is a desktop bug tracker for the Mac. It currently syncs with GitHub Issues, JIRA and FogBugz.
-* [CinéObs](http://itunes.com/apps/cineobs) uses GRMustache for RSS feeds rendering
-* [Fotopedia](http://itunes.com/apps/fotonautsinc), the first collaborative photo encyclopedia
-* [FunGolf GPS](http://itunes.com/apps/fungolf), a golf app with 3D maps
+* [CinéObs](http://itunes.com/apps/cineobs) uses GRMustache for RSS feeds rendering.
+* [Fotopedia](http://itunes.com/apps/fotonautsinc), the first collaborative photo encyclopedia.
+* [FunGolf GPS](http://itunes.com/apps/fungolf), a golf app with 3D maps.
 * [KosmicTask](http://www.mugginsoft.com/kosmictask), an integrated scripting environment for OS X that supports more than 20 scripting languages.
+* [MyInvoice](http://www.myinvoice.biz/en), an invoicing iOS app.
 * [Servus](https://servus.io) can turn any file on your computer into a branded download page hosted on Dropbox.
 
-Do you use GRMustache? [Tweet me](http://twitter.com/GRMustache) your link.
+Do you use GRMustache? [Tweet me your story and your link](http://twitter.com/GRMustache).
 
 
 Contribution wish-list
