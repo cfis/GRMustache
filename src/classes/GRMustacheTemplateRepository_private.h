@@ -44,7 +44,6 @@
 @private
     id<GRMustacheTemplateRepositoryDataSource> _dataSource;
     NSMutableDictionary *_templateForTemplateID;
-    id _currentlyParsedTemplateID;
     GRMustacheConfiguration *_configuration;
 }
 
@@ -83,5 +82,18 @@
 
 // Documented in GRMustacheTemplateRepository.h
 - (GRMustacheTemplate *)templateFromString:(NSString *)templateString error:(NSError **)error GRMUSTACHE_API_PUBLIC;
+
+/**
+ * Returns a template or a partial template, given its name.
+ *
+ * @param name            The name of the template
+ * @param baseTemplateID  The template ID of the enclosing template, or nil.
+ * @param error           If there is an error loading or parsing template and
+ *                        partials, upon return contains an NSError object that
+ *                        describes the problem.
+ *
+ * @return a template
+ */
+- (GRMustacheTemplate *)templateNamed:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)error GRMUSTACHE_API_INTERNAL;
 
 @end

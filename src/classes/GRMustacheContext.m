@@ -20,8 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import <objc/message.h>
-#import <pthread.h>
 #import "GRMustacheContext_private.h"
 #import "GRMustacheTag_private.h"
 #import "GRMustacheExpression_private.h"
@@ -29,14 +27,7 @@
 #import "GRMustacheError.h"
 #import "GRMustacheTemplateOverride_private.h"
 #import "GRMustacheExpressionParser_private.h"
-#import "GRMustacheExpression_private.h"
-#import "JRSwizzle.h"
-
-
-#if !defined(NS_BLOCK_ASSERTIONS)
-// For testing purpose
-BOOL GRMustacheContextDidCatchNSUndefinedKeyException;
-#endif
+#import "GRMustacheKeyAccess_private.h"
 
 
 // =============================================================================
@@ -92,15 +83,6 @@ BOOL isManagedPropertyKVCKey(Class klass, NSString *key, id *zeroValue);
 
 // TODO
 NSString *canonicalKeyForKey(Class klass, NSString *key);
-
-
-// =============================================================================
-#pragma mark - NSUndefinedKeyException prevention declarations
-
-@interface NSObject(GRMustacheContextPreventionOfNSUndefinedKeyException)
-- (id)GRMustacheContextValueForUndefinedKey_NSObject:(NSString *)key;
-- (id)GRMustacheContextValueForUndefinedKey_NSManagedObject:(NSString *)key;
-@end;
 
 
 // =============================================================================
@@ -480,7 +462,7 @@ NSString *canonicalKeyForKey(Class klass, NSString *key);
     
     if (_protectedContextObject) {
         for (GRMustacheContext *context = self; context; context = context->_protectedContextParent) {
-            id value = [GRMustacheContext valueForKey:key inObject:context->_protectedContextObject];
+            id value = [GRMustacheKeyAccess valueForMustacheKey:key inObject:context->_protectedContextObject];
             if (value != nil) {
                 if (protected != NULL) {
                     *protected = YES;
@@ -512,7 +494,7 @@ NSString *canonicalKeyForKey(Class klass, NSString *key);
                 }
             }
             if (hidden) { continue; }
-            id value = [GRMustacheContext valueForKey:key inObject:contextObject];
+            id value = [GRMustacheKeyAccess valueForMustacheKey:key inObject:contextObject];
             if (value != nil) {
                 if (protected != NULL) {
                     *protected = NO;
@@ -578,7 +560,7 @@ NSString *canonicalKeyForKey(Class klass, NSString *key);
             // Key is not a managed property. But subclass may have defined a
             // method for that key.
             
-            id value = [GRMustacheContext valueForKey:key inObject:self];
+            id value = [GRMustacheKeyAccess valueForMustacheKey:key inObject:self];
             
             if (value) {
                 if (protected != NULL) {
@@ -626,77 +608,6 @@ NSString *canonicalKeyForKey(Class klass, NSString *key);
     return value;
 }
 
-+ (id)valueForKey:(NSString *)key inObject:(id)object
-{
-    if (object == nil) {
-        return nil;
-    }
-    
-    if (preventsNSUndefinedKeyException) {
-        [GRMustacheContext startPreventingNSUndefinedKeyExceptionFromObject:object];
-    }
-    
-    @try {
-        // We don't want to use NSArray, NSSet and NSOrderedSet implementation
-        // of valueForKey:, because they return another collection: see issue #21
-        // and "anchored key should not extract properties inside an array" test
-        // in src/tests/Public/v4.0/GRMustacheSuites/compound_keys.json
-        if ([self objectIsFoundationCollectionWhoseImplementationOfValueForKeyReturnsAnotherCollection:object]) {
-            static IMP NSObjectIMP;
-            static dispatch_once_t onceToken;
-            dispatch_once(&onceToken, ^{
-                NSObjectIMP = class_getMethodImplementation([NSObject class], @selector(valueForKey:));
-            });
-            return NSObjectIMP(object, @selector(valueForKey:), key);
-        } else {
-            return [object valueForKey:key];
-        }
-    }
-    
-    @catch (NSException *exception) {
-        
-        // Swallow NSUndefinedKeyException only
-        
-        if (![[exception name] isEqualToString:NSUndefinedKeyException]) {
-            [exception raise];
-        }
-#if !defined(NS_BLOCK_ASSERTIONS)
-        else {
-            // For testing purpose
-            GRMustacheContextDidCatchNSUndefinedKeyException = YES;
-        }
-#endif
-    }
-    
-    @finally {
-        if (preventsNSUndefinedKeyException) {
-            [GRMustacheContext stopPreventingNSUndefinedKeyExceptionFromObject:object];
-        }
-    }
-    
-    return nil;
-}
-
-+ (BOOL)objectIsFoundationCollectionWhoseImplementationOfValueForKeyReturnsAnotherCollection:(id)object
-{
-    static CFMutableDictionaryRef cache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        cache = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
-    });
-    
-    Class klass = object_getClass(object);
-    intptr_t result = (intptr_t)CFDictionaryGetValue(cache, klass);   // 0 = undefined, 1 = YES, 2 = NO
-    if (!result) {
-        Class NSOrderedSetClass = NSClassFromString(@"NSOrderedSet");
-        result = ([klass isSubclassOfClass:[NSArray class]] ||
-                  [klass isSubclassOfClass:[NSSet class]] ||
-                  (NSOrderedSetClass && [klass isSubclassOfClass:NSOrderedSetClass])) ? 1 : 2;
-        CFDictionarySetValue(cache, klass, (const void *)result);
-    }
-    return (result == 1);
-}
-
 
 // =============================================================================
 #pragma mark - Tag Delegates Stack
@@ -729,19 +640,7 @@ NSString *canonicalKeyForKey(Class klass, NSString *key);
 
 + (BOOL)objectIsTagDelegate:(id)object
 {
-    static CFMutableDictionaryRef cache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        cache = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
-    });
-    
-    Class klass = object_getClass(object);
-    intptr_t result = (intptr_t)CFDictionaryGetValue(cache, klass);   // 0 = undefined, 1 = YES, 2 = NO
-    if (!result) {
-        result = class_conformsToProtocol(klass, @protocol(GRMustacheTagDelegate)) ? 1 : 2;
-        CFDictionarySetValue(cache, klass, (const void *)result);
-    }
-    return (result == 1);
+    return [object conformsToProtocol:@protocol(GRMustacheTagDelegate)];
 }
 
 
@@ -1084,66 +983,25 @@ BOOL hasManagedPropertyAccessor(Class klass, const char *selectorName, BOOL allo
 
 NSString *managedPropertyNameForSelector(Class klass, SEL selector)
 {
-    static CFMutableDictionaryRef classCache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        // Don't use NSMutableDictionary, which has copy semantics on keys.
-        // Instead, use CFDictionaryCreateMutable that does not manage keys (classes), but manages values (dictionaries)
-        classCache = CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-    });
-    
-    CFMutableDictionaryRef selectorCache = (CFMutableDictionaryRef)CFDictionaryGetValue(classCache, klass);
-    if (selectorCache == nil) {
-        // Don't use NSMutableDictionary, which has copy semantics on keys.
-        // Instead, use CFDictionaryCreateMutable that does not manage keys (selectors), but manages values (strings)
-        selectorCache = CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-        CFDictionarySetValue(classCache, klass, selectorCache);
-    }
-    
-    NSString *propertyName = CFDictionaryGetValue(selectorCache, selector);
-    if (propertyName == nil) {
-        char *propertyNameCString;
-        hasManagedPropertyAccessor(klass, sel_getName(selector), NO, NULL, NULL, NULL, &propertyNameCString, NULL, NULL);
-        propertyName = [NSString stringWithUTF8String:propertyNameCString];
-        free(propertyNameCString);
-        
-        CFDictionarySetValue(selectorCache, selector, propertyName);
-    }
-    
+    char *propertyNameCString;
+    hasManagedPropertyAccessor(klass, sel_getName(selector), NO, NULL, NULL, NULL, &propertyNameCString, NULL, NULL);
+    NSString *propertyName = [NSString stringWithUTF8String:propertyNameCString];
+    free(propertyNameCString);
     return propertyName;
 }
 
 NSString *canonicalKeyForKey(Class klass, NSString *key)
 {
-    static CFMutableDictionaryRef classCache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        // Don't use NSMutableDictionary, which has copy semantics on keys.
-        // Instead, use CFDictionaryCreateMutable that does not manage keys, but manages values (depth numbers)
-        classCache = CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-    });
+    // Assume unknown key
+    NSString *canonicalKey = key;
     
-    NSMutableDictionary *keyCache = CFDictionaryGetValue(classCache, klass);
-    if (keyCache == nil) {
-        keyCache = [NSMutableDictionary dictionary];
-        CFDictionarySetValue(classCache, klass, keyCache);
-    }
-    
-    NSString *canonicalKey = [keyCache objectForKey:key];
-    if (canonicalKey == nil) {
-        // Assume unknown key
-        canonicalKey = key;
-        
-        BOOL getter;
-        char *propertyNameCString;
-        if (hasManagedPropertyAccessor(klass, [key UTF8String], YES, &getter, NULL, NULL, &propertyNameCString, NULL, NULL)) {
-            if (getter) {
-                canonicalKey = [NSString stringWithUTF8String:propertyNameCString];
-            }
-            free(propertyNameCString);
+    BOOL getter;
+    char *propertyNameCString;
+    if (hasManagedPropertyAccessor(klass, [key UTF8String], YES, &getter, NULL, NULL, &propertyNameCString, NULL, NULL)) {
+        if (getter) {
+            canonicalKey = [NSString stringWithUTF8String:propertyNameCString];
         }
-        
-        [keyCache setValue:canonicalKey forKey:key];
+        free(propertyNameCString);
     }
     
     return canonicalKey;
@@ -1151,112 +1009,70 @@ NSString *canonicalKeyForKey(Class klass, NSString *key)
 
 BOOL isManagedPropertyKVCKey(Class klass, NSString *key, id *zeroValue)
 {
-    static CFMutableDictionaryRef isManagedPropertyClassCache;
-    static CFMutableDictionaryRef zeroValueClassCache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        // Don't use NSMutableDictionary, which has copy semantics on keys.
-        // Instead, use CFDictionaryCreateMutable that does not manage keys (classes), but manages values (dictionaries)
-        isManagedPropertyClassCache = CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-        zeroValueClassCache = CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-    });
-    
-    NSMutableDictionary *isManagedPropertyCache = CFDictionaryGetValue(isManagedPropertyClassCache, klass);
-    if (isManagedPropertyCache == nil) {
-        isManagedPropertyCache = [NSMutableDictionary dictionary];
-        CFDictionarySetValue(isManagedPropertyClassCache, klass, isManagedPropertyCache);
-    }
-    
-    NSMutableDictionary *zeroValueCache = CFDictionaryGetValue(zeroValueClassCache, klass);
-    if (zeroValueCache == nil) {
-        zeroValueCache = [NSMutableDictionary dictionary];
-        CFDictionarySetValue(zeroValueClassCache, klass, zeroValueCache);
-    }
-    
-    NSNumber *result = [isManagedPropertyCache objectForKey:key];
-    if (result == nil) {
-        BOOL isManagedProperty = NO;
-        id zeroValue = nil;
-        
-        BOOL getter;
-        char *encoding;
-        if (hasManagedPropertyAccessor(klass, [key UTF8String], YES, &getter, NULL, NULL, NULL, &encoding, NULL)) {
-            isManagedProperty = getter;
-            
-            if (isManagedProperty) {
-                // build zero value
-                
-                switch (encoding[0]) {
-                    case 'c':
-                        zeroValue = [NSNumber numberWithChar:0];
-                        break;
-                    case 'i':
-                        zeroValue = [NSNumber numberWithInt:0];
-                        break;
-                    case 's':
-                        zeroValue = [NSNumber numberWithShort:0];
-                        break;
-                    case 'l':
-                        zeroValue = [NSNumber numberWithLong:0];
-                        break;
-                    case 'q':
-                        zeroValue = [NSNumber numberWithLongLong:0];
-                        break;
-                    case 'C':
-                        zeroValue = [NSNumber numberWithUnsignedChar:0];
-                        break;
-                    case 'I':
-                        zeroValue = [NSNumber numberWithUnsignedInt:0];
-                        break;
-                    case 'S':
-                        zeroValue = [NSNumber numberWithUnsignedShort:0];
-                        break;
-                    case 'L':
-                        zeroValue = [NSNumber numberWithUnsignedLong:0];
-                        break;
-                    case 'Q':
-                        zeroValue = [NSNumber numberWithUnsignedLongLong:0];
-                        break;
-                    case 'f':
-                        zeroValue = [NSNumber numberWithFloat:0.0f];
-                        break;
-                    case 'd':
-                        zeroValue = [NSNumber numberWithDouble:0.0];
-                        break;
-                    case 'B':
-                        zeroValue = [NSNumber numberWithBool:0];
-                        break;
-                    case '@':
-                        zeroValue = nil;
-                        break;
-                    case '#':
-                        zeroValue = Nil;
-                        break;
-                    default: {
-                        NSUInteger valueSize;
-                        NSGetSizeAndAlignment(encoding, &valueSize, NULL);
-                        void *bytes = malloc(valueSize);
-                        memset(bytes, 0, valueSize);
-                        zeroValue = [NSValue valueWithBytes:bytes objCType:encoding];
-                        free(bytes);
-                    } break;
-                }
+    BOOL isManagedProperty = NO;
+    char *encoding;
+    if (hasManagedPropertyAccessor(klass, [key UTF8String], YES, &isManagedProperty, NULL, NULL, NULL, &encoding, NULL)) {
+        if (isManagedProperty && zeroValue) {
+            switch (encoding[0]) {
+                case 'c':
+                    *zeroValue = [NSNumber numberWithChar:0];
+                    break;
+                case 'i':
+                    *zeroValue = [NSNumber numberWithInt:0];
+                    break;
+                case 's':
+                    *zeroValue = [NSNumber numberWithShort:0];
+                    break;
+                case 'l':
+                    *zeroValue = [NSNumber numberWithLong:0];
+                    break;
+                case 'q':
+                    *zeroValue = [NSNumber numberWithLongLong:0];
+                    break;
+                case 'C':
+                    *zeroValue = [NSNumber numberWithUnsignedChar:0];
+                    break;
+                case 'I':
+                    *zeroValue = [NSNumber numberWithUnsignedInt:0];
+                    break;
+                case 'S':
+                    *zeroValue = [NSNumber numberWithUnsignedShort:0];
+                    break;
+                case 'L':
+                    *zeroValue = [NSNumber numberWithUnsignedLong:0];
+                    break;
+                case 'Q':
+                    *zeroValue = [NSNumber numberWithUnsignedLongLong:0];
+                    break;
+                case 'f':
+                    *zeroValue = [NSNumber numberWithFloat:0.0f];
+                    break;
+                case 'd':
+                    *zeroValue = [NSNumber numberWithDouble:0.0];
+                    break;
+                case 'B':
+                    *zeroValue = [NSNumber numberWithBool:0];
+                    break;
+                case '@':
+                    *zeroValue = nil;
+                    break;
+                case '#':
+                    *zeroValue = Nil;
+                    break;
+                default: {
+                    NSUInteger valueSize;
+                    NSGetSizeAndAlignment(encoding, &valueSize, NULL);
+                    void *bytes = malloc(valueSize);
+                    memset(bytes, 0, valueSize);
+                    *zeroValue = [NSValue valueWithBytes:bytes objCType:encoding];
+                    free(bytes);
+                } break;
             }
-            
-            free(encoding);
         }
-        
-        result = [NSNumber numberWithBool:isManagedProperty];
-        [isManagedPropertyCache setValue:result forKey:key];
-        if (zeroValue) {
-            [zeroValueCache setValue:zeroValue forKey:key];
-        }
+        free(encoding);
     }
-    
-    if ([result boolValue] && zeroValue != NULL) {
-        *zeroValue = [zeroValueCache objectForKey:key];
-    }
-    return [result boolValue];
+
+    return isManagedProperty;
 }
 
 static void GRMustacheContextManagedPropertyCharSetter(GRMustacheContext *self, SEL _cmd, char value)
@@ -1830,108 +1646,6 @@ static Class GRMustacheContextManagedPropertyClassGetter(GRMustacheContext *self
     } else {
         [super forwardInvocation:invocation];
     }
-}
-
-
-// =============================================================================
-#pragma mark - NSUndefinedKeyException prevention
-
-static BOOL preventsNSUndefinedKeyException = NO;
-
-#if TARGET_OS_IPHONE
-    // iOS never had support for Garbage Collector.
-    // Use fast pthread library.
-    static pthread_key_t GRPreventedObjectsStorageKey;
-    void freePreventedObjectsStorage(void *objects) {
-        [(NSMutableSet *)objects release];
-    }
-    #define setupPreventedObjectsStorage() pthread_key_create(&GRPreventedObjectsStorageKey, freePreventedObjectsStorage)
-    #define getCurrentThreadPreventedObjects() (NSMutableSet *)pthread_getspecific(GRPreventedObjectsStorageKey)
-    #define setCurrentThreadPreventedObjects(objects) pthread_setspecific(GRPreventedObjectsStorageKey, objects)
-#else
-    // OSX used to have support for Garbage Collector.
-    // Use slow NSThread library.
-    static NSString *GRPreventedObjectsStorageKey = @"GRPreventedObjectsStorageKey";
-    #define setupPreventedObjectsStorage()
-    #define getCurrentThreadPreventedObjects() (NSMutableSet *)[[[NSThread currentThread] threadDictionary] objectForKey:GRPreventedObjectsStorageKey]
-    #define setCurrentThreadPreventedObjects(objects) [[[NSThread currentThread] threadDictionary] setObject:objects forKey:GRPreventedObjectsStorageKey]
-#endif
-
-+ (void)preventNSUndefinedKeyExceptionAttack
-{
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        [self setupNSUndefinedKeyExceptionPrevention];
-    });
-}
-
-+ (void)setupNSUndefinedKeyExceptionPrevention
-{
-    preventsNSUndefinedKeyException = YES;
-    
-    // Swizzle [NSObject valueForUndefinedKey:]
-    
-    [NSObject jr_swizzleMethod:@selector(valueForUndefinedKey:)
-                    withMethod:@selector(GRMustacheContextValueForUndefinedKey_NSObject:)
-                         error:nil];
-    
-    
-    // Swizzle [NSManagedObject valueForUndefinedKey:]
-    
-    Class NSManagedObjectClass = NSClassFromString(@"NSManagedObject");
-    if (NSManagedObjectClass) {
-        [NSManagedObjectClass jr_swizzleMethod:@selector(valueForUndefinedKey:)
-                                    withMethod:@selector(GRMustacheContextValueForUndefinedKey_NSManagedObject:)
-                                         error:nil];
-    }
-
-    setupPreventedObjectsStorage();
-}
-
-+ (void)startPreventingNSUndefinedKeyExceptionFromObject:(id)object
-{
-    NSMutableSet *objects = getCurrentThreadPreventedObjects();
-    if (objects == NULL) {
-        // objects will be released by the garbage collector, or by pthread
-        // destructor function freePreventedObjectsStorage.
-        //
-        // Static analyzer can't see that, and emits a memory leak warning here.
-        // This is a false positive: avoid the static analyzer examine this
-        // portion of code.
-#ifndef __clang_analyzer__
-        objects = [[NSMutableSet alloc] init];
-        setCurrentThreadPreventedObjects(objects);
-#endif
-    }
-    
-    [objects addObject:object];
-}
-
-+ (void)stopPreventingNSUndefinedKeyExceptionFromObject:(id)object
-{
-    [getCurrentThreadPreventedObjects() removeObject:object];
-}
-
-@end
-
-@implementation NSObject(GRMustacheContextPreventionOfNSUndefinedKeyException)
-
-// NSObject
-- (id)GRMustacheContextValueForUndefinedKey_NSObject:(NSString *)key
-{
-    if ([getCurrentThreadPreventedObjects() containsObject:self]) {
-        return nil;
-    }
-    return [self GRMustacheContextValueForUndefinedKey_NSObject:key];
-}
-
-// NSManagedObject
-- (id)GRMustacheContextValueForUndefinedKey_NSManagedObject:(NSString *)key
-{
-    if ([getCurrentThreadPreventedObjects() containsObject:self]) {
-        return nil;
-    }
-    return [self GRMustacheContextValueForUndefinedKey_NSManagedObject:key];
 }
 
 @end

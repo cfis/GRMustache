@@ -5,7 +5,7 @@ GRMustache is a flexible and production-ready implementation of [Mustache](http:
 
 GRMustache targets iOS down to version 4.3, MacOS down to 10.6 Snow Leopard (with or without garbage collection), and only depends on the Foundation framework.
 
-**October 19, 2013: GRMustache 6.8.3 is out.** [Release notes](RELEASE_NOTES.md)
+**January 11, 2014: GRMustache 6.8.4 is out.** [Release notes](RELEASE_NOTES.md)
 
 Get release announcements and usage tips: follow [@GRMustache on Twitter](http://twitter.com/GRMustache).
 
@@ -104,6 +104,10 @@ FAQ
 - **Q: I get "unrecognized selector sent to instance" errors.**
     
     A: Check that you have added the `-ObjC` option in the "Other Linker Flags" of your target ([how to](http://developer.apple.com/library/mac/#qa/qa1490/_index.html)).
+
+- **Q: is GRMustache thread-safe?**
+    
+    A: Thread-safety of non-mutating methods is guaranteed. Thread-safety of mutating methods is not guaranteed.
 
 - **Q: Is it possible to render array indexes? Customize first and last elements? Distinguish odd and even items, play fizzbuzz?**
     
