@@ -1,6 +1,6 @@
 // The MIT License
 // 
-// Copyright (c) 2013 Gwendal Roué
+// Copyright (c) 2014 Gwendal Roué
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,11 @@
 
 #import <Foundation/Foundation.h>
 #import "GRMustacheAvailabilityMacros_private.h"
-#import "GRMustache_private.h"
 
+@class GRMustachePartial;
 @class GRMustacheTemplate;
 @class GRMustacheTemplateRepository;
 @class GRMustacheConfiguration;
-@protocol GRMustacheTemplateComponent;
 
 // Documented in GRMustacheTemplateRepository.h
 @protocol GRMustacheTemplateRepositoryDataSource <NSObject>
@@ -43,7 +42,7 @@
 @interface GRMustacheTemplateRepository : NSObject {
 @private
     id<GRMustacheTemplateRepositoryDataSource> _dataSource;
-    NSMutableDictionary *_templateForTemplateID;
+    NSMutableDictionary *_partialForTemplateID;
     GRMustacheConfiguration *_configuration;
 }
 
@@ -84,7 +83,7 @@
 - (GRMustacheTemplate *)templateFromString:(NSString *)templateString error:(NSError **)error GRMUSTACHE_API_PUBLIC;
 
 /**
- * Returns a template or a partial template, given its name.
+ * Returns a partial template, given its name.
  *
  * @param name            The name of the template
  * @param baseTemplateID  The template ID of the enclosing template, or nil.
@@ -92,8 +91,8 @@
  *                        partials, upon return contains an NSError object that
  *                        describes the problem.
  *
- * @return a template
+ * @return a partial template
  */
-- (GRMustacheTemplate *)templateNamed:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)error GRMUSTACHE_API_INTERNAL;
+- (GRMustachePartial *)partialNamed:(NSString *)name relativeToTemplateID:(id)baseTemplateID error:(NSError **)error GRMUSTACHE_API_INTERNAL;
 
 @end

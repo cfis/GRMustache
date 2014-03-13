@@ -20,19 +20,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#define GRMUSTACHE_VERSION_MAX_ALLOWED GRMUSTACHE_VERSION_6_8
+#define GRMUSTACHE_VERSION_MAX_ALLOWED GRMUSTACHE_VERSION_6_9
 #import "GRMustachePublicAPITest.h"
 
-@interface GRMustacheKeyedSubscriptingClass : NSObject
-@property (nonatomic, retain) NSString *property;
+@interface GRMustacheKeyedSubscriptingClass : NSObject {
+    NSMutableDictionary *_dictionary;
+}
 @property (nonatomic, retain) NSMutableDictionary *dictionary;
 @end
 
 @implementation GRMustacheKeyedSubscriptingClass
+@synthesize dictionary=_dictionary;
 
 - (void)dealloc
 {
-    self.property = nil;
     self.dictionary = nil;
     [super dealloc];
 }
@@ -46,14 +47,19 @@
     return self;
 }
 
+- (id)valueForKey:(NSString *)key
+{
+    return @"value";
+}
+
 - (void)setObject:(id)object forKeyedSubscript:(id<NSCopying>)key
 {
-    self.dictionary[key] = object;
+    [self.dictionary setObject:object forKey:key];
 }
 
 - (id)objectForKeyedSubscript:(id)key
 {
-    return self.dictionary[key];
+    return [self.dictionary objectForKey:key];
 }
 
 @end
@@ -63,22 +69,26 @@
 
 @implementation GRMustacheKeyedSubscriptingTest
 
-- (void)testKeyedSubscriptingHidesProperties
-{
-    GRMustacheKeyedSubscriptingClass *object = [[[GRMustacheKeyedSubscriptingClass alloc] init] autorelease];
-    object.property = @"foo";
-    STAssertEqualObjects([object valueForKey:@"property"], @"foo", nil);
-    NSString *rendering = [GRMustacheTemplate renderObject:object fromString:@"<{{property}}>" error:NULL];
-    STAssertEqualObjects(rendering, @"<>", nil);
-}
-
 - (void)testKeyedSubscripting
 {
-    id object = [[[GRMustacheKeyedSubscriptingClass alloc] init] autorelease];
-    object[@"foo"] = @"bar";
-    STAssertEqualObjects(object[@"foo"], @"bar", nil);
-    NSString *rendering = [GRMustacheTemplate renderObject:object fromString:@"<{{foo}}>" error:NULL];
-    STAssertEqualObjects(rendering, @"<bar>", nil);
+    GRMustacheKeyedSubscriptingClass *object = [[[GRMustacheKeyedSubscriptingClass alloc] init] autorelease];
+    NSString *key = @"foo";
+    NSString *value = @"value";
+    [object setObject:value forKeyedSubscript:key];
+    
+    STAssertEqualObjects([object objectForKeyedSubscript:key], value, nil);
+    STAssertEqualObjects(([GRMustacheTemplate renderObject:object fromString:[NSString stringWithFormat:@"{{%@}}", key] error:NULL]), value, nil);
+}
+
+- (void)testKeyedSubscriptingOverridesValueForKey
+{
+    GRMustacheKeyedSubscriptingClass *object = [[[GRMustacheKeyedSubscriptingClass alloc] init] autorelease];
+    NSString *key = @"foo";
+    NSString *value = @"value";
+    
+    // Empty rendering for key `foo` despite [object valueForKey:@"foo"] is not empty
+    STAssertEqualObjects([object valueForKey:key], value, nil);
+    STAssertEqualObjects(([GRMustacheTemplate renderObject:object fromString:[NSString stringWithFormat:@"{{%@}}", key] error:NULL]), @"", nil);
 }
 
 @end

@@ -3,6 +3,23 @@ GRMustache Release Notes
 
 You can compare the performances of GRMustache versions at https://github.com/groue/GRMustacheBenchmark.
 
+## v6.9.2
+
+[Fix](https://github.com/groue/GRMustache/pull/70) for a crash on arm64 devices.
+
+
+## v6.9.1
+
+[Fix](https://github.com/groue/GRMustache/pull/67) for a crash in enumeration rendering.
+
+
+## v6.9.0
+
+GRMustache now supports [keyed subscripting](http://clang.llvm.org/docs/ObjectiveCLiterals.html#dictionary-style-subscripting): the `objectForKeyedSubscript:` method is preferred to the classic Key-Value-Coding `valueForKey:` method, when extracting values from your view models.
+
+This change fixes the issue [#66](https://github.com/groue/GRMustache/issues/66).
+
+
 ## v6.8.4
 
 Thread-safety of non-mutating methods is guaranteed.
