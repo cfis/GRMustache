@@ -1,4 +1,4 @@
-[up](../../../../GRMustache#documentation), [next](template_repositories.md)
+[up](../../../../GRMustache#documentation), [next](template_inheritance.md)
 
 Partial templates
 =================
@@ -7,9 +7,14 @@ When a `{{> name }}` Mustache tag occurs in a template, GRMustache renders in pl
 
 You can write recursive partials. Just avoid infinite loops in your context objects.
 
+- [Sources of partials](#sources-of-partials)
+- [Partials in the file system](#partials-in-the-file-system)
+- [Dynamic partials](#dynamic-partials)
+- [Compatibility with other Mustache implementations](#compatibility-with-other-mustache-implementations)
 
-Source of partials
-------------------
+
+Sources of partials
+-------------------
 
 Depending on the method which has been used to create the original template, partials will be searched in different places :
 
@@ -43,6 +48,7 @@ The a.mustache template can embed b.mustache with the `{{> partials/b }}` tag, a
 
 *Never use file extensions in your partial tags.* `{{> partials/b.mustache }}` would try to load the `b.mustache.mustache` file which does not exist: you'd get an error of domain `GRMustacheErrorDomain` and code `GRMustacheErrorCodeTemplateNotFound`.
 
+
 ### Absolute paths to partials
 
 When your templates are stored in a hierarchy of directories, you sometimes need to refer to a partial template in an absolute way, that does not depend on the location of the embedding template.
@@ -59,122 +65,6 @@ The latter always references the same partial, with an *absolute path*.
 Absolute partial paths need a root, and the objects that set this root are `GRMustacheTemplateRepository` objects. The rest of the story is documented at [Template Repositories Guide](template_repositories.md).
 
 
-Overriding portions of partials
--------------------------------
-
-Partials may contain *overridable sections*. Those sections start with a dollar instead of a pound. For example, let's consider the following partial:
-
-`page_layout.mustache`:
-
-    <html>
-    <head>
-        <title>{{$page_title}}Default title{{/page_title}}</title>
-    </head>
-    <body>
-        <h1>{{$page_title}}Default title{{/page_title}}</h1>
-        {{$page_content}
-            Default content
-        {{/page_content}}}
-    </body>
-    </html>
-
-You can embed such an overridable partial, and override its sections with the `{{<partial}}...{{/partial}}` syntax:
-
-`article_page.mustache`:
-
-    {{<page_layout}}
-    
-        {{! override page_title }}
-        {{$page_title}}{{article.title}}{{/page_title}}
-        
-        {{! override page_content }}
-        {{$page_content}}
-            {{#article}}
-                {{body}}
-                by {{author}}
-            {{/article}}
-        {{/page_content}}
-        
-    {{/page_layout}}
-
-When you render `article.mustache`, you will get a full HTML page.
-
-### Concatenation of overriding sections
-
-In Ruby on Rails, multiple `<% content_for :foo do %>...<% end %>` provide multiple contents for a single `<%= yield :foo %>`. You can achieve the same effect:
-
-`article_page.mustache`:
-
-    {{<page}}
-        {{$layout_javascript}}
-            <script type="text/javascript" src="article.js"></script>
-        {{/layout_javascript}}
-
-        {{$page_content}}
-            article content
-        {{/page_content}}
-    {{/page}}
-
-`page.mustache`:
-
-    {{<layout}}
-        {{$layout_javascript}}
-            <script type="text/javascript" src="page.js"></script>
-        {{/layout_javascript}}
-
-        {{>page_header}}
-
-        {{$layout_content}}
-            {{$page_content}}
-            {{/page_content}}
-        {{/layout_content}}
-    
-        {{$layout_content}}
-            page footer
-        {{/layout_content}}
-
-    {{/layout}}
-
-`page_header.mustache`:
-
-    {{$layout_javascript}}
-        <script type="text/javascript" src="header.js"></script>
-    {{/layout_javascript}}
-    {{$layout_content}}
-        page header
-    {{/layout_content}}
-
-`layout.mustache`:
-
-    <html>
-    <head>
-        {{$layout_javascript}}{{/layout_javascript}}
-    </head>
-    <body>
-        {{$layout_content}}{{/layout_content}}
-    </body>
-    </html>
-
-`Render.m`:
-
-    NSString *rendering = [GRMustacheTemplate renderObject:nil fromResource:@"article_page" bundle:nil error:NULL];
-
-Final rendering:
-
-    <html>
-    <head>
-        <script type="text/javascript" src="page.js"></script>
-        <script type="text/javascript" src="header.js"></script>
-        <script type="text/javascript" src="article.js"></script>
-    </head>
-    <body>
-        page header
-        article content
-        page footer
-    </body>
-    </html>
-
-
 Dynamic partials
 ----------------
 
@@ -186,10 +76,10 @@ You may want to choose the rendered partial at runtime: this use case is covered
 Compatibility with other Mustache implementations
 -------------------------------------------------
 
-The [Mustache specification](https://github.com/mustache/spec) does not have the concepts of relative vs. absolute partial paths, overridable sections, or dynamic partials.
+The [Mustache specification](https://github.com/mustache/spec) does not have the concepts of relative vs. absolute partial paths, or dynamic partials.
 
-**As a consequence, if your goal is to design templates that remain compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), use those features with great care.**
+**As a consequence, if your goal is to design templates that are compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), use those features with great care.**
 
 
-[up](../../../../GRMustache#documentation), [next](template_repositories.md)
+[up](../../../../GRMustache#documentation), [next](template_inheritance.md)
 

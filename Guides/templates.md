@@ -1,9 +1,14 @@
-[up](../../../../GRMustache#documentation), [next](partials.md)
+[up](../../../../GRMustache#documentation), [next](runtime.md)
 
 Templates
 =========
 
 You'll learn here how to load, and render templates. The [Runtime Guide](runtime.md) talks about what happens *during* the rendering itself. Common patterns for feeding templates are described in the [ViewModel Guides](view_model.md).
+
+- [Errors](#errors)
+- [On-the-fly rendering methods](#on-the-fly-rendering-methods)
+- [Parse-once-and-render-many-times methods](#parse-once-and-render-many-times-methods)
+- [More loading options](#more-loading-options)
 
 Errors
 ------
@@ -109,4 +114,4 @@ More loading options
 
 All methods above cover the most common use cases. If you have more needs, check the [Template Repositories Guide](template_repositories.md).
 
-[up](../../../../GRMustache#documentation), [next](partials.md)
+[up](../../../../GRMustache#documentation), [next](runtime.md)

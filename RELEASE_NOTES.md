@@ -3,21 +3,158 @@ GRMustache Release Notes
 
 You can compare the performances of GRMustache versions at https://github.com/groue/GRMustacheBenchmark.
 
+## v7.0.2
+
+- Fix a memory leak
+- Remove a compiler warning
+
+
+## v7.0.1
+
+Restore compatibility with iOS < 7 and OSX < 10.9.
+
+
+## v7.0.0
+
+GRMustache 7.0 introduces several changes to the previous release, focusing on security, compatibility with other Mustache implementations, and API simplification. Those changes may break your existing applications.
+
+### Breaking changes
+
+The [GRMustache 7.0 Migration Guide](Guides/upgrading.md) is here to ease your transition.
+
+- For security reasons, keys accessed through the Key-Value-Coding method `valueForKey:` are now limited by default to keys that are explicitly declared as properties (with `@property`), or Core Data attributes (for managed objects). See the [Security Guide](Guides/security.md) for more information.
+- Support for garbage-collected Objective-C is dropped.
+- Support for subclassing the `GRMustacheContext` class is dropped.
+- Template inheritance is more compatible with [hogan.js](http://twitter.github.com/hogan.js/) and [spullara/mustache.java](https://github.com/spullara/mustache.java).
+- `[GRMustacheTemplateRepository templateRepositoryWithDictionary:]` no longer copies its partials dictionary. The repository may have a different behavior if the dictionary gets mutated.
+
+
+### New features
+
+- GRMustacheTemplateRepository caches templates. The `reloadTemplates` method clears this cache.
+
+
+### API changes
+
+**New APIs**
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustache.html
+
+```objc
+@interface GRMustache
++ (GRMustacheVersion)libraryVersion;
+@end
+```
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustacheContext.html
+
+```objc
+@interface GRMustacheContext
+@property (nonatomic, readonly) BOOL unsafeKeyAccess;
++ (instancetype)contextWithUnsafeKeyAccess;
+- (instancetype)contextWithUnsafeKeyAccess;
+@end
+```
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustacheRendering.html
+
+```objc
+@interface GRMustacheRendering
++ (id<GRMustacheRendering>)renderingObjectForObject:(id)object;
++ (id<GRMustacheRendering>)renderingObjectWithBlock:(NSString *(^)(GRMustacheTag *tag, GRMustacheContext *context, BOOL *HTMLSafe, NSError **error))block;
+@end
+```
+
+See http://groue.github.io/GRMustache/Reference/Protocols/GRMustacheSafeKeyAccess.html
+
+```objc
+@protocol GRMustacheSafeKeyAccess
++ (NSSet *)safeMustacheKeys;
+@end
+```
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustacheTemplate.html
+
+```objc
+@interface GRMustacheTemplate
+@property (nonatomic, retain, readonly) GRMustacheTemplateRepository *templateRepository;
+@end
+```
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustacheTemplateRepository.html
+
+```objc
+@interface GRMustacheTemplateRepository
+- (void)reloadTemplates;
+@end
+```
+
+**Modified APIs**
+
+Check their updated documentations in the header files.
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustacheTemplateRepository.html
+
+```objc
+@interface GRMustacheTemplateRepository
++ (instancetype)templateRepositoryWithDictionary:(NSDictionary *)templates;
+@end
+```
+
+**Deprecated APIs**
+
+Those APIs are not discontinued, but they will have your code emit deprecation warnings. Check their documentations in the header files in order to get the upgrade path.
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustache.html
+
+```objc
+@interface GRMustache
++ (id<GRMustacheRendering>)renderingObjectForObject:(id)object;
++ (id<GRMustacheRendering>)renderingObjectWithBlock:(NSString *(^)(GRMustacheTag *tag, GRMustacheContext *context, BOOL *HTMLSafe, NSError **error))block;
+@end
+```
+
+See http://groue.github.io/GRMustache/Reference/Classes/GRMustacheTag.html
+
+```objc
+@interface GRMustacheTag
+@property (nonatomic, readonly) GRMustacheTemplateRepository *templateRepository;
+@end
+```
+
+**Removed APIs**
+
+```objc
+typedef NS_ENUM(NSUInteger, GRMustacheTagType) {
+    // This constant is not replaced.
+    GRMustacheTagTypeOverridableSection,
+}
+
+@interface GRMustache
+// Use +[GRMustache libraryVersion] instead.
++ (GRMustacheVersion)version;
+@end
+
+@interface GRMustacheContext
+// Use -[GRMustacheContext hasValue:forMustacheExpression:error:] instead.
+- (id)valueForMustacheExpression:(NSString *)string error:(NSError **)error;
+@end
+```
+
+
 ## v6.9.2
 
-[Fix](https://github.com/groue/GRMustache/pull/70) for a crash on arm64 devices.
+- Fix for [issue #70](https://github.com/groue/GRMustache/issues/70): crash on arm64 devices
 
 
 ## v6.9.1
 
-[Fix](https://github.com/groue/GRMustache/pull/67) for a crash in enumeration rendering.
+- Fix for [issue #67](https://github.com/groue/GRMustache/pull/67): crash in enumeration rendering
 
 
 ## v6.9.0
 
-GRMustache now supports [keyed subscripting](http://clang.llvm.org/docs/ObjectiveCLiterals.html#dictionary-style-subscripting): the `objectForKeyedSubscript:` method is preferred to the classic Key-Value-Coding `valueForKey:` method, when extracting values from your view models.
-
-This change fixes the issue [#66](https://github.com/groue/GRMustache/issues/66).
+- Fix for [issue #66](https://github.com/groue/GRMustache/issues/66): GRMustache now supports [keyed subscripting](http://clang.llvm.org/docs/ObjectiveCLiterals.html#dictionary-style-subscripting). The `objectForKeyedSubscript:` method is preferred to the classic Key-Value-Coding `valueForKey:` method, when extracting values from your view models.
 
 
 ## v6.8.4
@@ -79,7 +216,7 @@ Full documentation of the new APIs: [GRMustacheTemplate](http://groue.github.io/
 
 ## v6.7.5
 
-Fix for issue [#56](https://github.com/groue/GRMustache/issues/56) (nil template strings have GRMustache return an error instead of crashing).
+Fix for [issue #56](https://github.com/groue/GRMustache/issues/56) (nil template strings have GRMustache return an error instead of crashing).
 
 ## v6.7.4
 
@@ -630,7 +767,7 @@ See [Guides/sample_code/indexes.md](Guides/sample_code/indexes.md) for a discuss
 
 Keys prefixed by a dot prevent GRMustache to look up the [context stack](Guides/runtime/context_stack.md).
 
-Beware this feature is not in the mustache specification. If your goal is to design templates that remain compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), don't use this syntax.
+Beware this feature is not in the mustache specification. If your goal is to design templates that are compatible with [other Mustache implementations](https://github.com/defunkt/mustache/wiki/Other-Mustache-implementations), don't use this syntax.
 
 See [issue #19](https://github.com/groue/GRMustache/issues/19) and https://github.com/mustache/spec/issues/10.
 

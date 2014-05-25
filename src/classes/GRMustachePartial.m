@@ -22,7 +22,8 @@
 
 #import "GRMustachePartial_private.h"
 #import "GRMustacheAST_private.h"
-#import "GRMustacheHTMLEscape_private.h"
+#import "GRMustacheTranslateCharacters_private.h"
+#import "GRMustacheRendering_private.h"
 
 @implementation GRMustachePartial
 @synthesize AST=_AST;
@@ -35,7 +36,7 @@
 
 #pragma mark <GRMustacheTemplateComponent>
 
-- (BOOL)renderContentType:(GRMustacheContentType)requiredContentType inBuffer:(NSMutableString *)buffer withContext:(GRMustacheContext *)context error:(NSError **)error
+- (BOOL)renderContentType:(GRMustacheContentType)requiredContentType inBuffer:(GRMustacheBuffer *)buffer withContext:(GRMustacheContext *)context error:(NSError **)error
 {
     if (!context) {
         // With a nil context, the method would return NO without setting the
@@ -45,16 +46,18 @@
     }
     
     GRMustacheContentType partialContentType = _AST.contentType;
-    NSMutableString *needsEscapingBuffer = nil;
-    NSMutableString *renderingBuffer = nil;
+    BOOL needsEscapingBuffer = NO;
+    GRMustacheBuffer unescapedBuffer;
+    GRMustacheBuffer *renderingBuffer = nil;
     
     if (requiredContentType == GRMustacheContentTypeHTML && (partialContentType != GRMustacheContentTypeHTML)) {
         // Self renders text, but is asked for HTML.
         // This happens when self is a text partial embedded in a HTML template.
         //
         // We'll have to HTML escape our rendering.
-        needsEscapingBuffer = [NSMutableString string];
-        renderingBuffer = needsEscapingBuffer;
+        needsEscapingBuffer = YES;
+        unescapedBuffer = GRMustacheBufferCreate(1024);
+        renderingBuffer = &unescapedBuffer;
     } else {
         // Self renders text and is asked for text,
         // or self renders HTML and is asked for HTML.
@@ -63,18 +66,31 @@
         renderingBuffer = buffer;
     }
     
+    BOOL success = YES;
+    
+    [GRMustacheRendering pushCurrentContentType:partialContentType];
     for (id<GRMustacheTemplateComponent> component in _AST.templateComponents) {
-        // component may be overriden by a GRMustachePartialOverride: resolve it.
+        // component may be overriden by a GRMustacheInheritablePartial: resolve it.
         component = [context resolveTemplateComponent:component];
         
         // render
         if (![component renderContentType:partialContentType inBuffer:renderingBuffer withContext:context error:error]) {
-            return NO;
+            success = NO;
+            break;
         }
+    }
+    [GRMustacheRendering popCurrentContentType];
+    
+    if (!success) {
+        if (needsEscapingBuffer) {
+            GRMustacheBufferRelease(&unescapedBuffer);
+        }
+        return NO;
     }
     
     if (needsEscapingBuffer) {
-        [buffer appendString:[GRMustacheHTMLEscape escapeHTML:needsEscapingBuffer]];
+        NSString *unescapedString = GRMustacheBufferGetStringAndRelease(&unescapedBuffer);
+        GRMustacheBufferAppendString(buffer, GRMustacheTranslateHTMLCharacters(unescapedString));
     }
     
     return YES;
@@ -82,18 +98,18 @@
 
 - (id<GRMustacheTemplateComponent>)resolveTemplateComponent:(id<GRMustacheTemplateComponent>)component
 {
-    // look for the last overriding component in inner components.
+    // Look for the last inheritable component in inner components.
     //
-    // This allows a partial do define an overriding section:
+    // This allows a partial do define an inheritable section:
     //
     //    {
     //        data: { },
     //        expected: "partial1",
-    //        name: "Partials in overridable partials can override overridable sections",
+    //        name: "Partials in inheritable partials can override inheritable sections",
     //        template: "{{<partial2}}{{>partial1}}{{/partial2}}"
     //        partials: {
-    //            partial1: "{{$overridable}}partial1{{/overridable}}";
-    //            partial2: "{{$overridable}}ignored{{/overridable}}";
+    //            partial1: "{{$inheritable}}partial1{{/inheritable}}";
+    //            partial2: "{{$inheritable}}ignored{{/inheritable}}";
     //        },
     //    }
     for (id<GRMustacheTemplateComponent> innerComponent in _AST.templateComponents) {

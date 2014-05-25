@@ -106,6 +106,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
  * Parses templateString and returns an abstract syntax tree.
  * 
  * @param templateString  A Mustache template string.
+ * @param contentType     The content type of the returned AST.
  * @param templateID      The template ID of the template, or nil if the
  *                        template string is not tied to any identified template.
  * @param error           If there is an error, upon return contains an NSError
@@ -115,7 +116,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
  * 
  * @see GRMustacheTemplateRepository
  */
-- (GRMustacheAST *)ASTFromString:(NSString *)templateString templateID:(id)templateID error:(NSError **)error;
+- (GRMustacheAST *)ASTFromString:(NSString *)templateString contentType:(GRMustacheContentType)contentType templateID:(id)templateID error:(NSError **)error;
 
 @end
 
@@ -168,6 +169,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     self = [super init];
     if (self) {
         _partialForTemplateID = [[NSMutableDictionary alloc] init];
+        _partialForTemplateString = [[NSMutableDictionary alloc] init];
         _configuration = [[GRMustacheConfiguration defaultConfiguration] copy];
     }
     return self;
@@ -176,6 +178,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
 - (void)dealloc
 {
     [_partialForTemplateID release];
+    [_partialForTemplateString release];
     [_configuration release];
     [super dealloc];
 }
@@ -188,22 +191,37 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
     }
     
     GRMustacheTemplate *template = [[[GRMustacheTemplate alloc] init] autorelease];
-    template.AST = partial.AST;
+    template.templateRepository = self;
+    template.partial = partial;
     template.baseContext = _configuration.baseContext;
     return template;
 }
 
 - (GRMustacheTemplate *)templateFromString:(NSString *)templateString error:(NSError **)error
 {
-    GRMustacheAST *AST = [self ASTFromString:templateString templateID:nil error:error];
-    if (!AST) {
+    return [self templateFromString:templateString contentType:_configuration.contentType error:error];
+}
+
+- (GRMustacheTemplate *)templateFromString:(NSString *)templateString contentType:(GRMustacheContentType)contentType error:(NSError **)error
+{
+    GRMustachePartial *partial = [self partialFromString:templateString contentType:contentType error:error];
+    if (!partial) {
         return nil;
     }
     
     GRMustacheTemplate *template = [[[GRMustacheTemplate alloc] init] autorelease];
-    template.AST = AST;
+    template.templateRepository = self;
+    template.partial = partial;
     template.baseContext = _configuration.baseContext;
     return template;
+}
+
+- (void)reloadTemplates
+{
+    @synchronized(self) {
+        [_partialForTemplateID removeAllObjects];
+        [_partialForTemplateString removeAllObjects];
+    }
 }
 
 - (void)setConfiguration:(GRMustacheConfiguration *)configuration
@@ -222,7 +240,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
 
 #pragma mark Private
 
-- (GRMustacheAST *)ASTFromString:(NSString *)templateString templateID:(id)templateID error:(NSError **)error
+- (GRMustacheAST *)ASTFromString:(NSString *)templateString contentType:(GRMustacheContentType)contentType templateID:(id)templateID error:(NSError **)error
 {
     GRMustacheAST *AST = nil;
     @autoreleasepool {
@@ -230,7 +248,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
         [_configuration lock];
         
         // Create a Mustache compiler that loads partials from self
-        GRMustacheCompiler *compiler = [[[GRMustacheCompiler alloc] initWithConfiguration:_configuration] autorelease];
+        GRMustacheCompiler *compiler = [[[GRMustacheCompiler alloc] initWithContentType:contentType] autorelease];
         compiler.templateRepository = self;
         compiler.baseTemplateID = templateID;
         
@@ -304,7 +322,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
             
             // Compile
             
-            GRMustacheAST *AST = [self ASTFromString:templateString templateID:templateID error:error];
+            GRMustacheAST *AST = [self ASTFromString:templateString contentType:_configuration.contentType templateID:templateID error:error];
             
             
             // compiling done
@@ -316,6 +334,28 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
                 [_partialForTemplateID removeObjectForKey:templateID];
                 partial = nil;
             }
+        }
+        
+        return partial;
+    }
+}
+
+- (GRMustachePartial *)partialFromString:(NSString *)templateString contentType:(GRMustacheContentType)contentType error:(NSError **)error
+{
+    // Protect our _partialForTemplateString dictionary
+    @synchronized(self) {
+        GRMustachePartial *partial = [_partialForTemplateID objectForKey:templateString];
+        
+        if (partial == nil) {
+            GRMustacheAST *AST = [self ASTFromString:templateString contentType:contentType templateID:nil error:error];
+            if (!AST) {
+                return nil;
+            }
+            
+            partial = [[[GRMustachePartial alloc] init] autorelease];
+            partial.AST = AST;
+            
+            [_partialForTemplateString setObject:partial forKey:templateString];
         }
         
         return partial;
@@ -510,17 +550,7 @@ static NSString* const GRMustacheDefaultExtension = @"mustache";
 {
     self = [super init];
     if (self) {
-        NSMutableDictionary *deepCopy = [[NSMutableDictionary alloc] init];
-        [partialsDictionary enumerateKeysAndObjectsUsingBlock:^(NSString *templateName, NSString *templateString, BOOL *stop) {
-            if (![templateName isKindOfClass:[NSString class]]) {
-                [NSException raise:NSInvalidArgumentException format:@"Template name is not a string: %@", templateName];
-            }
-            if (![templateString isKindOfClass:[NSString class]]) {
-                [NSException raise:NSInvalidArgumentException format:@"Template is not a string: %@", templateString];
-            }
-            [deepCopy setObject:[[templateString copy] autorelease] forKey:templateName];
-        }];
-        _partialsDictionary = deepCopy;
+        _partialsDictionary = [partialsDictionary retain];
         self.dataSource = self;
     }
     return self;
