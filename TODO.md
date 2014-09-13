@@ -1,5 +1,24 @@
 ## TODO
 
+
+- [ ] a Mustache template linter that can run as a build phase
+    - warns of syntax errors
+    - warns of compatibility issues:  `{{ a/b }}` syntax is deprecated, used `a.b` instead, etc.
+- [ ] optional standard library
+
+    // All standard lib
+    [GRMustacheConfiguration defaultConfiguration].baseContext = [GRMustacheContext contextWithObject:[GRMustache standardLibrary]];
+    template.baseContext = [GRMustacheContext contextWithObject:[GRMustache standardLibrary]];
+    [[GRMustache standardLibrary] subsetWithKeys:@[@"each", @"zip"
+
+    // Partial standard lib
+
+
+- [ ] Document that errors are no longer logged.
+- [X] check that {{^ [NSNull null]|@NO }}...{{.}}...{{/}} does not mess with the {{.}}
+- [X] Consider replacing GRMustacheTemplate.partialNode with GRMustacheTemplate.templateAST
+- [X] Rename `identifier` to `name`
+- [X] Fix link to filters Guide from GRMustacheFilter.h
 - [X] Document [GRMustacheTemplateRepository templateRepositoryWithDictionary:] changes (mutability of the dictionary)
 - [X] Document [GRMustacheTemplateRepository reloadTemplates] in release notes.
 - [X] Test [GRMustacheTemplateRepository reloadTemplates].
@@ -33,8 +52,3 @@
 - [ ] document migration path from all previous versions to latest version
 - [ ] > But they do allow Xcode to see the symbols when creating the final executable and allow the static library symbols to get included in the final DSYM file thereby allowing full symoblication of crash reports. (https://github.com/RestKit/RestKit/issues/1277)
 
-## Experiments
-
-- [ ] {{.}}, {{..}}, {{...}}, {{.name}}, {{..name}}, {{...name}}, {{ROOT}}, {{ROOT.name}}
-- [ ] Have filters put something in the scope: in `{{ dateFormat(date, ISO_8601) }}`, ISO_8601 would be defined by the dateFormat filter.
-- [ ] date/time formatter: `{{ dateFormat(date, Short) }}`, `{{ timeFormat(date, Short) }}`, `{{ dateTimeFormat(date, Short, Full) }}`

@@ -10,7 +10,6 @@ Rendering Objects
 - [Example: Have a section render an alternate template string](#example-have-a-section-render-an-alternate-template-string)
 - [Example: Dynamic partials](#example-dynamic-partials)
 - [Example: Objects that render themselves](#example-objects-that-render-themselves)
-- [Example: Render collections of objects](#example-render-collections-of-objects)
 - [Example: A Handlebars.js Helper](#example-a-handlebarsjs-helper)
 - [More Sample Code](#more-sample-code)
 - [Compatibility with other Mustache implementations](#compatibility-with-other-mustache-implementations)
@@ -45,13 +44,13 @@ The `{{> partial }}` tag renders a hard-coded template, identified by its name. 
 
 `pluralize` is a filter that returns an object able to pluralize the content of the section (see sample code in [issue #50](https://github.com/groue/GRMustache/issues/50#issuecomment-16197912)).
 
-    {{# withPosition(items) }}{{ position }}: {{ name }}{{/ }}
+    {{# each(items) }}{{ @index }}: {{ name }}{{/ }}
 
-`withPosition` is a filter that returns an object that performs a custom rendering of arrays, by defining the `position` key (see the [Indexes Sample Code](sample_code/indexes.md)).
+`each` is part of the [standard library](standard_library.md#each). It returns rendering objects that define extra keys such as `@index`.
 
 ----
 
-All examples above are built using public GRMustache APIs, even the ones that use built-in objects such as `localize` or the date formatter: your own rendering objects are not artificially limited.
+**All examples above are built using public GRMustache APIs.** Even the built-in ones such as `localize`, `each`, or the date formatter. Your own rendering objects are not artificially limited.
 
 The last two examples involve [filters](filters.md). Filters themselves do not provide custom rendering: they just transform values. However, when they return objects that provide custom rendering, the fun can begin. This two-fold pattern is how GRMustache let you implement [Handlebars-like helpers](http://handlebarsjs.com/block_helpers.html).
 
@@ -84,16 +83,19 @@ This protocol declares the method that all rendering objects must implement:
 
 See the [GRMustacheTag Class Reference](http://groue.github.io/GRMustache/Reference/Classes/GRMustacheTag.html) and [GRMustacheContext Class Reference](http://groue.github.io/GRMustache/Reference/Classes/GRMustacheContext.html) for a full documentation of GRMustacheTag and GRMustacheContext.
 
-You may declare and implement your own conforming classes. The `+[GRMustacheRendering renderingObjectWithBlock:]` method comes in handy for creating a rendering object without declaring any class:
+The `+[GRMustacheRendering renderingObjectWithBlock:]` method comes in handy for creating a rendering object without declaring any class:
 
 ```objc
 id renderingObject = [GRMustacheRendering renderingObjectWithBlock:^NSString *(GRMustacheTag *tag, GRMustacheContext *context, BOOL *HTMLSafe, NSError **error)
 {
-    return @"I'm rendered!";
+    switch(tag.type) {
+        case GRMustacheTagTypeVariable:
+            return @"I'm rendering a {{ variable }} tag.";
+        case GRMustacheTagTypeSection:
+            return @"I'm rendering a {{# regular }}...{{/ }} section tag.";
+    }
 }];
 ```
-
-The _tag_ and _context_ parameters help you perform your custom rendering. Check their references ([GRMustacheTag](http://groue.github.io/GRMustache/Reference/Classes/GRMustacheTag.html), [GRMustacheContext](http://groue.github.io/GRMustache/Reference/Classes/GRMustacheContext.html)) for a full documentation of their classes. This guide will illustrate how to use those objects with a few examples.
 
 
 Trivial Example
@@ -439,52 +441,6 @@ Two useful things:
 See the [GRMustacheContext Class Reference](http://groue.github.io/GRMustache/Reference/Classes/GRMustacheContext.html) for a full documentation of the GRMustacheContext class.
 
 
-Example: Render collections of objects
---------------------------------------
-
-Using the same Movie and Person class introduced above, we can easily render a list of movies, just as Ruby on Rails's `<%= render @movies %>`:
-
-
-`Document.mustache`:
-
-    {{ movies }}  {{! one movie is not enough }}
-
-`Movie.mustache`:
-
-    {{ title }} by {{ director }}
-    
-`Person.mustache`:
-
-    {{ firstName }} {{ lastName }}
-
-`Render.m`:
-
-```objc
-id data = @{
-    @"movies": @[
-        [Movie movieWithTitle:@"Citizen Kane"
-                     director:[Person personWithFirstName:@"Orson" lastName:@"Welles"]],
-        [Movie movieWithTitle:@"Some Like It Hot"
-                     director:[Person personWithFirstName:@"Billy" lastName:@"Wilder"]],
-    ]
-};
-
-NSString *rendering = [GRMustacheTemplate renderObject:data
-                                          fromResource:@"Document"
-                                                bundle:nil
-                                                 error:NULL];
-```
-
-Final rendering:
-
-    Citizen Kane by Orson Welles
-    Some Like It Hot by Billy Wilder
-
-### What did we learn here?
-
-A new perspective on the fact that arrays render the concatenation of their items.
-
-
 Example: A Handlebars.js Helper
 -------------------------------
 
@@ -509,7 +465,7 @@ Let's build this "helper" with GRMustache:
 ```objc
 // Load the template
 
-GRMustacheTemplate *template = [GRMustacheTemplate fromResource:@"Document" bundle:nil error:NULL];
+GRMustacheTemplate *template = [GRMustacheTemplate templateFromResource:@"Document" bundle:nil error:NULL];
 
 
 // Extend the base context of the template, so that the "list" helper gets
@@ -601,9 +557,9 @@ You have more sample code in [issue #50](https://github.com/groue/GRMustache/iss
 More Sample Code
 ----------------
 
-The [Collection Indexes Sample Code](sample_code/indexes.md) uses the `GRMustacheRendering` protocol for rendering indexes of an array items.
+The `each` filter of the [standard library](standard_library.md#each) uses the protocol to make special keys such as `@index` and `@first` available to templates.
 
-The `localize` helper of the [standard library](standard_library.md) uses the protocol to localize full template sections, as in `{{# localize }}Hello {{ name }}{{/ localize }}`.
+The `localize` helper of the [standard library](standard_library.md#localize) uses the protocol to localize full template sections, as in `{{# localize }}Hello {{ name }}{{/ localize }}`.
 
 NSFormatter instances are rendering objets as well, so that `{{# decimal }}{{ x }} + {{ y }} = {{ sum }}{{/ decimal }}` would render nice decimal numbers. Check the [NSFormatter Guide](NSFormatter.md).
 

@@ -87,7 +87,7 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
                                                  error:NULL];
 ```
 
-GRMustache first looks for the `person` key, extracts its `name`, and applies the `uppercase` built-in filter of the [standard library](standard_library.md). The variable tag eventually renders the resulting string.
+GRMustache first looks for the `person` key, extracts its `name`, and applies the `uppercase` built-in filter of the [standard library](standard_library.md#uppercase). The variable tag eventually renders the resulting string.
 
 
 Section tags
@@ -157,7 +157,7 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
                                                  error:NULL];
 ```
 
-Each item in the collection gets, each on its turn, available for the key lookup: that is how the `{{ name }}` tag renders each of my friend's name.
+Each item in the collection gets, each on its turn, available for the key lookup: that is how the `{{ name }}` tag renders each of my friend's name. Items that conform to the `GRMustacheRendering` protocol can provide their own rendering of their iteration step (see the [Rendering Objects Guide](rendering_objects.md)).
 
 Inverted sections render if and only if the collection is empty:
 
@@ -270,7 +270,7 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
                                                  error:NULL];
 ```
 
-The `localize` key is attached to a rendering object that is built in the [standard library](standard_library.md) shipped with GRMustache.
+The `localize` key is attached to a rendering object that is built in the [standard library](standard_library.md#localize) shipped with GRMustache.
 
 
 ### Other sections
@@ -302,8 +302,8 @@ id data = @{
     }
 };
 
-NSString *templateString = @"{{# withPosition(person.friends) }}"
-                           @"    {{ position }}: {{ name }}"
+NSString *templateString = @"{{# each(person.friends) }}"
+                           @"    {{ @indexPlusOne }}: {{ name }}"
                            @"{{/}}";
 
 // 1: José
@@ -314,7 +314,7 @@ NSString *rendering = [GRMustacheTemplate renderObject:data
                                                  error:NULL];
 ```
 
-The `withPosition` filter returns a [rendering object](rendering_objects.md) that makes the `position` key available inside the section. It is described in the [Collection Indexes Sample Code](sample_code/indexes.md).
+The `each` filter is part of the [standard library](standard_library.md#each).
 
 
 The context stack
